@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Planejador de Voo - Mini 4 Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- Tailwind via CDN: ok para uso pessoal; para publicar, compile o CSS. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    #map { position: absolute; inset: 0; z-index: 10; }
+  </style>
+</head>
+<body class="flex flex-col md:flex-row h-screen w-screen overflow-hidden font-sans bg-gray-900 text-gray-100">
+
+  <!-- Barra Lateral -->
+  <aside class="w-full md:w-96 max-h-[48vh] md:max-h-none bg-gray-950/95 backdrop-blur z-20 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-800 p-5 shadow-2xl overflow-y-auto shrink-0">
+    <div class="space-y-4">
+      <div class="border-b border-gray-800 pb-3">
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span> Planejador de Voo
+        </h1>
+        <p class="text-xs text-gray-400 mt-1">DJI Mini 4 Pro · mapeamento · KMZ para o DJI Fly</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Importar Perímetro</label>
+        <label class="flex items-center justify-center w-full px-3 py-2 border border-dashed border-gray-700 rounded-lg cursor-pointer bg-gray-900 hover:border-emerald-500 transition text-xs text-gray-300 gap-2">
+          <span id="fileName">Carregar .KML ou .GeoJSON</span>
+          <input type="file" id="fileInput" accept=".kml,.geojson,.json" class="hidden">
+        </label>
+      </div>
+
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="text-gray-300">Altitude de Voo (AGL)</span>
+          <span id="altVal" class="font-bold text-emerald-400">80 m</span>
+        </div>
+        <input type="range" id="altitude" min="30" max="120" value="80" class="w-full accent-emerald-500 cursor-pointer">
+      </div>
+
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="text-gray-300">Direção das Linhas (0° = Norte)</span>
+          <span id="angleVal" class="font-bold text-emerald-400">0°</span>
+        </div>
+        <input type="range" id="angle" min="0" max="180" value="0" class="w-full accent-emerald-500 cursor-pointer">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Sobrep. Frontal</label>
+          <select id="forwardOverlap" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+            <option value="0.70">70%</option>
+            <option value="0.75">75%</option>
+            <option value="0.80" selected>80%</option>
+            <option value="0.85">85%</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Sobrep. Lateral</label>
+          <select id="sideOverlap" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+            <option value="0.60">60%</option>
+            <option value="0.65">65%</option>
+            <option value="0.70" selected>70%</option>
+            <option value="0.75">75%</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Intervalo entre fotos</label>
+          <select id="photoInterval" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+            <option value="auto" selected>Automático</option>
+            <option value="2">2 s</option>
+            <option value="3">3 s</option>
+            <option value="5">5 s</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Velocidade máx. (m/s)</label>
+          <input type="number" id="maxSpeed" min="2" max="15" step="0.5" value="6" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+        </div>
+      </div>
+      <p class="text-[11px] -mt-2 text-gray-500">A velocidade é calculada a partir do intervalo para manter a sobreposição frontal, sem passar da velocidade máxima.</p>
+
+      <div>
+        <div class="flex items-center justify-between gap-2">
+          <label for="lineExtend" class="text-xs text-gray-400">Folga nas pontas das linhas (m)</label>
+          <input type="number" id="lineExtend" min="0" max="60" step="5" value="20" class="w-24 bg-gray-800 border border-gray-700 rounded-lg p-1.5 text-sm text-white text-right">
+        </div>
+        <p class="text-[11px] mt-1 text-gray-500">Cada passada ganha um waypoint de entrada e outro de saída fora da área. O drone faz a curva nessa folga e passa reto sobre a área. É o mesmo padrão de uma missão desenhada à mão no Fly.</p>
+      </div>
+
+      <div class="space-y-2 pt-1 border-t border-gray-800">
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="crossGrid" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+          <label for="crossGrid" class="text-sm text-gray-300 cursor-pointer">Voo Cruzado (Double Grid 3D)</label>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="terrainFollow" checked class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+            <label for="terrainFollow" class="text-sm text-emerald-400 font-medium cursor-pointer">Acompanhar Terreno (DEM)</label>
+          </div>
+          <button id="btnSampleTerrain" class="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded border border-gray-700 text-gray-300">
+            Atualizar Relevo
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-2">
+          <label for="takeoffElev" class="text-xs text-gray-400">Elevação do ponto de decolagem (m)</label>
+          <input type="number" step="0.1" id="takeoffElev" placeholder="auto" class="w-24 bg-gray-800 border border-gray-700 rounded-lg p-1.5 text-sm text-white text-right">
+        </div>
+        <p class="text-[11px] text-gray-500">Padrão: elevação do 1º waypoint. Se for decolar de outro lugar, informe a elevação real de lá.</p>
+      </div>
+
+      <div id="terrainCard" class="bg-gray-900 border border-gray-800 rounded-xl p-3 space-y-2">
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-gray-400 font-semibold">Perfil de Relevo (DEM):</span>
+          <span id="terrainStatus" class="text-emerald-400">Aguardando área...</span>
+        </div>
+        <canvas id="elevationCanvas" width="600" height="130" class="w-full bg-gray-950 rounded border border-gray-800"></canvas>
+        <div class="flex justify-between text-[11px] text-gray-400">
+          <span>Decolagem: <strong id="elevHome" class="text-white">--</strong></span>
+          <span>Desnível: <strong id="elevDiff" class="text-white">--</strong></span>
+        </div>
+        <div class="text-[11px] text-gray-400">Altura relativa mín/máx: <strong id="heightRange" class="text-white">--</strong></div>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-3.5 space-y-1.5">
+        <div class="flex justify-between text-xs"><span class="text-gray-400">GSD (Resolução no Solo):</span><span id="statGSD" class="font-semibold text-white">--</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Área Coberta:</span><span id="statArea" class="font-semibold text-white">--</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Distância Total:</span><span id="statDist" class="font-semibold text-white">--</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Waypoints:</span><span id="statWaypoints" class="font-semibold text-white">--</span></div>
+        <div class="flex justify-between text-xs bg-emerald-950/60 border border-emerald-800 rounded-lg px-2 py-1.5"><span class="text-emerald-300 font-semibold">Intervalo da foto (use no Fly):</span><span id="statInterval" class="font-bold text-emerald-300">--</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Velocidade (já no KMZ):</span><span id="statSpeed" class="font-semibold text-white">--</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Sobrep. frontal real:</span><span id="statRealFwd" class="font-semibold text-white">--</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Fotos (estimado):</span><span id="statPhotos" class="font-semibold text-white">--</span></div>
+        <div class="flex justify-between text-xs"><span class="text-gray-400">Tempo de voo (estimado):</span><span id="statTime" class="font-semibold text-white">--</span></div>
+      </div>
+    </div>
+
+    <div class="pt-3 border-t border-gray-800 mt-4">
+      <button id="btnExport" disabled class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl transition duration-150 flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        <span id="btnExportText">Exportar KMZ (DJI Fly)</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="flex-1 relative min-h-0">
+    <div class="absolute top-4 left-14 right-14 md:right-auto z-30 flex items-center shadow-2xl rounded-lg overflow-hidden border border-gray-700 bg-gray-900/95 md:w-96">
+      <input type="text" id="searchInput" placeholder="Buscar cidade, endereço ou lat, lng..." class="w-full px-3 py-2 text-sm bg-transparent text-white focus:outline-none">
+      <button id="btnSearch" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">Buscar</button>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="hintBox" class="absolute bottom-6 left-6 z-20 bg-gray-900/90 border border-gray-700 text-xs px-3 py-2 rounded-lg text-gray-300 pointer-events-none max-w-xs">
+      Desenhe ou importe a área. Marcador <span class="text-red-400 font-semibold">vermelho</span> = 1º waypoint, <span class="text-blue-400 font-semibold">azul</span> = último. Linha tracejada = folga de curva.
+    </div>
+
+    <div id="toast" class="hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-md px-4 py-2 rounded-lg text-sm shadow-2xl border"></div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    // ------------------------------------------------------------------
+    // Drone: DJI Mini 4 Pro (único suportado)
+    //  - fly.drone/sub: 68/0, confirmado em KMZ gerado pelo DJI Fly (RC 2)
+    // ------------------------------------------------------------------
+    const DRONE = {
+      cam: { sensorW: 9.6, sensorH: 7.2, focal: 6.72, pxW: 4032, pxH: 3024 },
+      fly: { drone: 68, sub: 0 },
+      flightMin: 28                      // autonomia nominal (min); usa-se 75% como margem
+    };
+    const FLY_NS = 'http://www.uav.com/wpmz/1.0.2';   // namespace do KMZ gerado pelo Fly
+    const PHOTO_INTERVALS = [2, 3, 5];                // intervalos de foto disponíveis (s)
+    const SAMPLE_M = 90;                              // amostragem do terreno (DEM ~90 m)
+    const TURN_SECONDS = 3;                           // tempo médio por curva entre passadas
+    const FLY_WP_WARN = 50;                           // acima disso o Fly pode ficar lento
+
+    // ------------------------------------------------------------------
+    // Estado
+    // ------------------------------------------------------------------
+    let activeFeature = null;      // Feature GeoJSON (Polygon/MultiPolygon)
+    const state = { wps: [], lines: [], meta: {}, takeoff: null };
+    let takeoffEdited = false;
+    let elevationTimer = null;
+    let terrainSeq = 0;
+    const elevCache = new Map();   // "lat,lng" -> elevação (m)
+    const cacheKey = (lat, lng) => lat.toFixed(5) + ',' + lng.toFixed(5);
+
+    // ------------------------------------------------------------------
+    // Toast
+    // ------------------------------------------------------------------
+    let toastTimer = null;
+    function toast(msg, type = 'info') {
+      const el = $('toast');
+      const colors = {
+        info: 'bg-gray-900/95 border-gray-700 text-gray-100',
+        warn: 'bg-amber-900/95 border-amber-600 text-amber-100',
+        error: 'bg-red-900/95 border-red-600 text-red-100'
+      };
+      el.className = 'absolute bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-md px-4 py-2 rounded-lg text-sm shadow-2xl border ' + colors[type];
+      el.textContent = msg;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 8000);
+    }
+
+    // ------------------------------------------------------------------
+    // Mapa
+    // ------------------------------------------------------------------
+    const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles &copy; Esri' });
+    const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+    const esriHybrid = L.layerGroup([esriSat, esriLabels]);
+    // Atenção: tiles do Google fora da API oficial violam os termos de uso. Mantido só para uso pessoal.
+    const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20, attribution: 'Google Satellite' });
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' });
+
+    const map = L.map('map', { zoomControl: false, layers: [esriHybrid], preferCanvas: true }).setView([-2.5307, -44.3068], 13);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.control.layers({
+      "Esri Satélite + Cidades": esriHybrid,
+      "Google Satélite (uso pessoal)": googleHybrid,
+      "Esri Satélite Puro": esriSat,
+      "Mapa de Ruas (OSM)": osm
+    }, null, { position: 'topright' }).addTo(map);
+
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    map.addControl(new L.Control.Draw({
+      position: 'topleft',
+      draw: { polygon: { allowIntersection: false, showArea: true }, rectangle: true, circle: false, circlemarker: false, marker: false, polyline: false },
+      edit: { featureGroup: drawnItems }
+    }));
+
+    const flightLayer = L.layerGroup().addTo(map);
+    const waypointsMarkersLayer = L.layerGroup().addTo(map);
+
+    map.on(L.Draw.Event.CREATED, (e) => {
+      drawnItems.clearLayers();
+      drawnItems.addLayer(e.layer);
+      activeFeature = e.layer.toGeoJSON();
+      takeoffEdited = false;
+      recomputeGrid(true);
+    });
+    map.on(L.Draw.Event.EDITED, () => {
+      const layers = drawnItems.getLayers();
+      if (layers.length) { activeFeature = layers[0].toGeoJSON(); recomputeGrid(true); }
+    });
+    map.on(L.Draw.Event.DELETED, () => {
+      if (drawnItems.getLayers().length) return;
+      activeFeature = null;
+      state.wps = []; state.lines = [];
+      flightLayer.clearLayers(); waypointsMarkersLayer.clearLayers();
+      updateExportButtons();
+      resetStats();
+    });
+
+    // ------------------------------------------------------------------
+    // Busca
+    // ------------------------------------------------------------------
+    async function searchLocation() {
+      const q = $('searchInput').value.trim();
+      if (!q) return;
+      if (/^[-+]?\d+(\.\d+)?,\s*[-+]?\d+(\.\d+)?$/.test(q)) {
+        const [lat, lng] = q.split(',').map(Number);
+        map.setView([lat, lng], 16);
+        return;
+      }
+      try {
+        const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=pt-BR&q=' + encodeURIComponent(q));
+        const data = await res.json();
+        if (data && data.length) map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 15);
+        else toast('Local não encontrado.', 'warn');
+      } catch (err) {
+        toast('Erro ao buscar localização.', 'error');
+      }
+    }
+    $('btnSearch').addEventListener('click', searchLocation);
+    $('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') searchLocation(); });
+
+    // ------------------------------------------------------------------
+    // Importação KML / GeoJSON (com furos internos)
+    // ------------------------------------------------------------------
+    function parseCoordText(txt) {
+      const ring = txt.trim().split(/\s+/).map(pair => {
+        const p = pair.split(',').map(Number);
+        return [p[0], p[1]];
+      }).filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+      if (ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) ring.push(ring[0]);
+      if (ring.length < 4) throw new Error('Polígono com menos de 3 vértices.');
+      return ring;
+    }
+
+    function featureFromKML(text) {
+      const xml = new DOMParser().parseFromString(text, 'text/xml');
+      if (xml.getElementsByTagName('parsererror').length) throw new Error('KML inválido.');
+      const poly = xml.getElementsByTagName('Polygon')[0];
+      const rings = [];
+      if (poly) {
+        const outer = poly.getElementsByTagName('outerBoundaryIs')[0];
+        const oc = outer && outer.getElementsByTagName('coordinates')[0];
+        if (!oc) throw new Error('Polígono sem contorno externo.');
+        rings.push(parseCoordText(oc.textContent));
+        Array.from(poly.getElementsByTagName('innerBoundaryIs')).forEach(n => {
+          const c = n.getElementsByTagName('coordinates')[0];
+          if (c) rings.push(parseCoordText(c.textContent));
+        });
+      } else {
+        const lr = xml.getElementsByTagName('LinearRing')[0];
+        const c = lr && lr.getElementsByTagName('coordinates')[0];
+        if (!c) throw new Error('Nenhum polígono encontrado no KML.');
+        rings.push(parseCoordText(c.textContent));
+      }
+      return turf.polygon(rings);
+    }
+
+    function featureFromGeoJSON(geo) {
+      const isPoly = (g) => g && /^(Multi)?Polygon$/.test(g.type);
+      if (geo.type === 'FeatureCollection') {
+        const f = geo.features.find(f => isPoly(f.geometry));
+        if (f) return f;
+      } else if (geo.type === 'Feature') {
+        if (isPoly(geo.geometry)) return geo;
+      } else if (isPoly(geo)) {
+        return { type: 'Feature', properties: {}, geometry: geo };
+      }
+      throw new Error('Nenhum polígono encontrado no GeoJSON.');
+    }
+
+    $('fileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      $('fileName').innerText = file.name;
+      try {
+        const text = await file.text();
+        const feature = file.name.toLowerCase().endsWith('.kml') ? featureFromKML(text) : featureFromGeoJSON(JSON.parse(text));
+        drawnItems.clearLayers();
+        const layer = L.geoJSON(feature);
+        layer.eachLayer(l => drawnItems.addLayer(l));
+        activeFeature = feature;
+        takeoffEdited = false;
+        map.fitBounds(layer.getBounds(), { padding: [40, 40] });
+        recomputeGrid(true);
+      } catch (err) {
+        toast('Erro ao ler o arquivo: ' + err.message, 'error');
+      }
+      e.target.value = '';
+    });
+
+    // ------------------------------------------------------------------
+    // Controles
+    // ------------------------------------------------------------------
+    function readParams() {
+      const num = (id, def) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : def; };
+      return {
+        alt: num('altitude', 80),
+        angle: num('angle', 0),
+        fwd: num('forwardOverlap', 0.8),
+        side: num('sideOverlap', 0.7),
+        cross: $('crossGrid').checked,
+        follow: $('terrainFollow').checked,
+        interval: $('photoInterval').value,
+        maxSpeed: Math.min(15, Math.max(2, num('maxSpeed', 6))),
+        extend: Math.min(60, Math.max(0, num('lineExtend', 20)))
+      };
+    }
+
+    function onParamChange() {
+      $('altVal').innerText = `${$('altitude').value} m`;
+      $('angleVal').innerText = `${$('angle').value}°`;
+      $('takeoffElev').disabled = !$('terrainFollow').checked;
+      if (!activeFeature) return;
+      recomputeGrid(false);
+      clearTimeout(elevationTimer);
+      elevationTimer = setTimeout(() => fetchTerrainElevations(), 450);
+    }
+    ['altitude', 'angle'].forEach(id => $(id).addEventListener('input', onParamChange));
+    ['forwardOverlap', 'sideOverlap', 'photoInterval', 'maxSpeed', 'lineExtend', 'crossGrid', 'terrainFollow']
+      .forEach(id => $(id).addEventListener('change', onParamChange));
+
+    $('btnSampleTerrain').addEventListener('click', () => { if (activeFeature) fetchTerrainElevations(); });
+    $('takeoffElev').addEventListener('input', () => { takeoffEdited = $('takeoffElev').value !== ''; applyHeights(); });
+
+    function updateExportButtons() {
+      $('btnExport').disabled = state.wps.length === 0;
+    }
+
+    function resetStats() {
+      ['statGSD', 'statArea', 'statDist', 'statWaypoints', 'statInterval', 'statSpeed', 'statRealFwd', 'statPhotos', 'statTime', 'elevHome', 'elevDiff', 'heightRange']
+        .forEach(id => $(id).innerText = '--');
+      $('terrainStatus').innerText = 'Aguardando área...';
+      const c = $('elevationCanvas'); c.getContext('2d').clearRect(0, 0, c.width, c.height);
+    }
+
+    // ------------------------------------------------------------------
+    // Geometria em metros (projeção plana local) + varredura de linhas
+    // ------------------------------------------------------------------
+    function metersPerDeg(latDeg) {
+      const p = latDeg * Math.PI / 180;
+      const ky = 111132.92 - 559.82 * Math.cos(2 * p) + 1.175 * Math.cos(4 * p);
+      const kx = 111412.84 * Math.cos(p) - 93.5 * Math.cos(3 * p);
+      return { kx, ky };
+    }
+
+    function extractRings(feature) {
+      const g = feature.geometry;
+      if (g.type === 'Polygon') return g.coordinates;
+      if (g.type === 'MultiPolygon') return g.coordinates.flat();
+      return [];
+    }
+
+    // Segmentos de varredura com direção "heading" (graus a partir do Norte, horário).
+    // Regra par-ímpar: trata polígonos côncavos, furos e multipolígonos.
+    function scanPass(ringsM, headingDeg, step) {
+      const th = headingDeg * Math.PI / 180;
+      const dx = Math.sin(th), dy = Math.cos(th);   // direção ao longo da linha
+      const nx = Math.cos(th), ny = -Math.sin(th);  // direção perpendicular
+      const R = ringsM.map(r => r.map(([x, y]) => [x * nx + y * ny, x * dx + y * dy]));
+      let umin = Infinity, umax = -Infinity;
+      R.forEach(r => r.forEach(([u]) => { if (u < umin) umin = u; if (u > umax) umax = u; }));
+      if (!isFinite(umin)) return [];
+
+      const us = [];
+      for (let k = 0; umin + step * (k + 0.5) <= umax; k++) us.push(umin + step * (k + 0.5));
+      if (!us.length) us.push((umin + umax) / 2);
+
+      const toXY = (u, v) => [u * nx + v * dx, u * ny + v * dy];
+      const out = [];
+      let lineIdx = 0;
+      us.forEach(u => {
+        const vs = [];
+        R.forEach(ring => {
+          for (let i = 0; i < ring.length; i++) {
+            const a = ring[i], b = ring[(i + 1) % ring.length];
+            if ((a[0] <= u && b[0] > u) || (b[0] <= u && a[0] > u)) {
+              vs.push(a[1] + (u - a[0]) / (b[0] - a[0]) * (b[1] - a[1]));
+            }
+          }
+        });
+        vs.sort((p, q) => p - q);
+        const segs = [];
+        for (let i = 0; i + 1 < vs.length; i += 2) if (vs[i + 1] - vs[i] > 1) segs.push([vs[i], vs[i + 1]]);
+        if (!segs.length) return;
+        const up = lineIdx % 2 === 0;
+        const ordered = up ? segs : segs.slice().reverse();
+        ordered.forEach(([v1, v2]) => {
+          const [s, e] = up ? [v1, v2] : [v2, v1];
+          out.push([toXY(u, s), toXY(u, e)]);
+        });
+        lineIdx++;
+      });
+      return out;
+    }
+
+    // ------------------------------------------------------------------
+    // Cálculo da missão
+    //  Cada passada vira: [entrada] -> início -> (pontos de terreno) -> fim -> [saída]
+    //  A entrada/saída ficam "folga" metros fora da área: a curva acontece ali.
+    // ------------------------------------------------------------------
+    function recomputeGrid(fetchNow = false) {
+      if (!activeFeature) return;
+      const p = readParams();
+      const cam = DRONE.cam;
+
+      const bb = turf.bbox(activeFeature);
+      const lng0 = (bb[0] + bb[2]) / 2, lat0 = (bb[1] + bb[3]) / 2;
+      const { kx, ky } = metersPerDeg(lat0);
+      const ringsM = extractRings(activeFeature).map(r => r.map(([lng, lat]) => [(lng - lng0) * kx, (lat - lat0) * ky]));
+
+      // Com a câmera em paisagem e o nariz seguindo a linha: largura do sensor = lateral, altura = frontal.
+      const groundW = p.alt * cam.sensorW / cam.focal;
+      const groundH = p.alt * cam.sensorH / cam.focal;
+      const sideStep = groundW * (1 - p.side);
+      const photoDist = groundH * (1 - p.fwd);
+      const gsd = (p.alt * cam.sensorW * 100) / (cam.focal * cam.pxW);
+
+      let segs = scanPass(ringsM, p.angle, sideStep);
+      if (p.cross) segs = segs.concat(scanPass(ringsM, (p.angle + 90) % 360, sideStep));
+
+      flightLayer.clearLayers();
+      waypointsMarkersLayer.clearLayers();
+
+      if (!segs.length) {
+        state.wps = []; state.lines = [];
+        updateExportButtons(); resetStats();
+        toast('Não foi possível gerar linhas de voo nessa área.', 'warn');
+        return;
+      }
+
+      const ext = p.extend;
+      const wps = [], lines = [];
+      segs.forEach((s, li) => {
+        const [a, b] = s;
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        const ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len;
+        const n = p.follow ? Math.max(1, Math.ceil(len / SAMPLE_M)) : 1;
+        const push = (x, y) => {
+          const prev = wps[wps.length - 1];
+          wps.push({ x, y, lng: lng0 + x / kx, lat: lat0 + y / ky, line: li, ground: null, h: p.alt,
+                     d: prev ? prev.d + Math.hypot(x - prev.x, y - prev.y) : 0 });
+        };
+        const start = wps.length;
+        if (ext > 0) push(a[0] - ux * ext, a[1] - uy * ext);     // entrada
+        const mainStart = wps.length;
+        for (let i = 0; i <= n; i++) {
+          const t = i / n;
+          push(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t);
+        }
+        const mainEnd = wps.length - 1;
+        if (ext > 0) push(b[0] + ux * ext, b[1] + uy * ext);     // saída
+        lines.push({ start, end: wps.length - 1, mainStart, mainEnd, len });
+      });
+
+      // Intervalo de foto (você liga manualmente no Fly): 2, 3 ou 5 s.
+      // Automático = menor intervalo que mantém a sobreposição sem passar da velocidade máxima.
+      const interval = p.interval === 'auto'
+        ? (PHOTO_INTERVALS.find(i => photoDist / i <= p.maxSpeed) || PHOTO_INTERVALS[PHOTO_INTERVALS.length - 1])
+        : +p.interval;
+      const speed = Math.max(1, Math.min(p.maxSpeed, Math.floor(photoDist / interval * 10) / 10));
+      const realFwd = 1 - (speed * interval) / groundH;
+
+      // Aplica elevações já em cache (evita nova consulta ao mudar só sobreposição, por exemplo)
+      wps.forEach(w => { const e = elevCache.get(cacheKey(w.lat, w.lng)); if (e !== undefined) w.ground = e; });
+
+      const totalDist = wps[wps.length - 1].d;
+      const duration = totalDist / speed + lines.length * TURN_SECONDS;
+
+      state.wps = wps; state.lines = lines;
+      state.meta = { alt: p.alt, gsd, photoDist, speed, interval, realFwd, totalDist, duration,
+                     photos: Math.ceil(totalDist / (speed * interval)) };
+
+      drawFlight(p);
+      applyHeights();
+      updateStats();
+      updateExportButtons();
+      if (fetchNow) fetchTerrainElevations();
+    }
+
+    function drawFlight(p) {
+      const { wps, lines } = state;
+      const sub = (i, j) => wps.slice(i, j + 1).map(w => [w.lat, w.lng]);
+      lines.forEach((l, i) => {
+        if (l.mainStart > l.start) L.polyline(sub(l.start, l.mainStart), { color: '#a7f3d0', weight: 2, opacity: 0.9, dashArray: '3,5' }).addTo(flightLayer);
+        L.polyline(sub(l.mainStart, l.mainEnd), { color: '#10b981', weight: 3, opacity: 0.95 }).addTo(flightLayer);
+        if (l.end > l.mainEnd) L.polyline(sub(l.mainEnd, l.end), { color: '#a7f3d0', weight: 2, opacity: 0.9, dashArray: '3,5' }).addTo(flightLayer);
+        if (i > 0) {
+          const a = wps[lines[i - 1].end], b = wps[l.start];
+          L.polyline([[a.lat, a.lng], [b.lat, b.lng]], { color: '#fbbf24', weight: 1.5, opacity: 0.8, dashArray: '4,5' }).addTo(flightLayer);
+        }
+      });
+      if (wps.length <= 2500) {
+        wps.forEach(w => L.circleMarker([w.lat, w.lng], { radius: 2.5, color: '#34d399', weight: 1, fillOpacity: 0.8 }).addTo(waypointsMarkersLayer));
+      }
+      const last = wps[wps.length - 1];
+      L.circleMarker([last.lat, last.lng], { radius: 7, color: '#fff', weight: 2, fillColor: '#3b82f6', fillOpacity: 1 })
+        .bindTooltip('Último waypoint (fim da missão)').addTo(waypointsMarkersLayer);
+      L.circleMarker([wps[0].lat, wps[0].lng], { radius: 7, color: '#fff', weight: 2, fillColor: '#ef4444', fillOpacity: 1 })
+        .bindTooltip('1º waypoint (início, referência de decolagem)').addTo(waypointsMarkersLayer);
+    }
+
+    function updateStats() {
+      const m = state.meta;
+      if (!state.wps.length) return;
+      $('statGSD').innerText = `${m.gsd.toFixed(2)} cm/px`;
+      $('statArea').innerText = `${(turf.area(activeFeature) / 10000).toFixed(2)} ha`;
+      $('statDist').innerText = `${(m.totalDist / 1000).toFixed(2)} km`;
+      $('statWaypoints').innerText = `${state.wps.length} pts` + (state.wps.length > FLY_WP_WARN ? ' ⚠' : '');
+      $('statWaypoints').title = state.wps.length > FLY_WP_WARN ? 'Com muitos waypoints o DJI Fly pode ficar lento. Desligue "Acompanhar Terreno" ou reduza a folga.' : '';
+      $('statInterval').innerText = `${m.interval} s`;
+      $('statSpeed').innerText = `${m.speed.toFixed(1)} m/s (${(m.speed * 3.6).toFixed(0)} km/h)`;
+      $('statRealFwd').innerText = `${(m.realFwd * 100).toFixed(0)}% (fotos a cada ${(m.speed * m.interval).toFixed(1)} m)`;
+      $('statPhotos').innerText = `~${m.photos}`;
+      const mins = Math.floor(m.duration / 60), secs = Math.round(m.duration % 60);
+      const usable = DRONE.flightMin * 0.75;
+      const over = m.duration / 60 > usable;
+      $('statTime').innerText = `${mins}m ${secs}s` + (over ? ' ⚠' : '');
+      $('statTime').className = 'font-semibold ' + (over ? 'text-amber-400' : 'text-white');
+      $('statTime').title = over ? `Excede ~${usable.toFixed(0)} min (75% da autonomia nominal). Divida a área em mais de uma bateria.` : '';
+    }
+
+    // ------------------------------------------------------------------
+    // Relevo (DEM) com cache, retry em 429 e proteção contra corrida
+    // ------------------------------------------------------------------
+    function terrainReadyNow() {
+      return state.wps.length > 0 && state.wps.every(w => w.ground !== null);
+    }
+
+    async function fetchElevBatch(chunk) {
+      const lats = chunk.map(w => w.lat.toFixed(5)).join(',');
+      const lngs = chunk.map(w => w.lng.toFixed(5)).join(',');
+      const url = `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const res = await fetch(url);
+        if (res.status === 429) { await sleep(1500 * (attempt + 1)); continue; }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (!Array.isArray(data.elevation) || data.elevation.length !== chunk.length) throw new Error('Resposta inválida do DEM');
+        return data.elevation;
+      }
+      throw new Error('Limite de requisições do DEM (429)');
+    }
+
+    // Retorna true se o relevo está aplicado (ou não é necessário), false em falha/substituição.
+    async function fetchTerrainElevations() {
+      if (!state.wps.length) return false;
+      const seq = ++terrainSeq;
+      const p = readParams();
+      const wps = state.wps;
+
+      if (!p.follow) { applyHeights(); return true; }
+
+      const missing = [], seen = new Set();
+      wps.forEach(w => {
+        const k = cacheKey(w.lat, w.lng);
+        if (!elevCache.has(k) && !seen.has(k)) { seen.add(k); missing.push(w); }
+      });
+
+      try {
+        if (missing.length) $('terrainStatus').innerText = `Consultando DEM (${missing.length} pts)...`;
+        const batchSize = 90;
+        for (let i = 0; i < missing.length; i += batchSize) {
+          const chunk = missing.slice(i, i + batchSize);
+          const elev = await fetchElevBatch(chunk);
+          chunk.forEach((w, j) => elevCache.set(cacheKey(w.lat, w.lng), elev[j]));
+          if (seq !== terrainSeq) return false;   // chegou uma requisição mais nova
+          if (i + batchSize < missing.length) await sleep(120);
+        }
+        if (seq !== terrainSeq) return false;
+        wps.forEach(w => { w.ground = elevCache.get(cacheKey(w.lat, w.lng)); });
+        applyHeights();
+        return true;
+      } catch (err) {
+        if (seq === terrainSeq) $('terrainStatus').innerText = 'Falha no DEM: ' + err.message;
+        return false;
+      }
+    }
+
+    // Converte a elevação do terreno em altura relativa ao ponto de decolagem
+    function applyHeights() {
+      const wps = state.wps;
+      if (!wps.length) return;
+      const p = readParams();
+      const ready = p.follow && terrainReadyNow();
+
+      if (ready) {
+        let takeoff = parseFloat($('takeoffElev').value);
+        if (!takeoffEdited || !Number.isFinite(takeoff)) {
+          takeoff = wps[0].ground;
+          $('takeoffElev').value = takeoff.toFixed(1);
+        }
+        wps.forEach(w => { w.h = +(w.ground - takeoff + p.alt).toFixed(1); });
+        state.takeoff = takeoff;
+      } else {
+        wps.forEach(w => { w.h = p.alt; });
+        state.takeoff = null;
+      }
+      updateTerrainPanel(ready, p);
+    }
+
+    function updateTerrainPanel(ready, p) {
+      const c = $('elevationCanvas');
+      if (!p.follow) {
+        $('terrainStatus').innerText = 'Desativado (voo plano)';
+        $('elevHome').innerText = '--'; $('elevDiff').innerText = '--';
+        $('heightRange').innerText = `${p.alt} m (constante)`;
+        c.getContext('2d').clearRect(0, 0, c.width, c.height);
+        return;
+      }
+      if (!ready) {
+        $('heightRange').innerText = '--';
+        if (!/Consultando|Falha/.test($('terrainStatus').innerText)) $('terrainStatus').innerText = 'Relevo pendente...';
+        return;
+      }
+      const grounds = state.wps.map(w => w.ground - state.takeoff);
+      const hs = state.wps.map(w => w.h);
+      $('terrainStatus').innerText = 'Relevo aplicado ✓';
+      $('elevHome').innerText = `${state.takeoff.toFixed(0)} m (nível do mar)`;
+      $('elevDiff').innerText = `${Math.min(...grounds).toFixed(0)} a +${Math.max(...grounds).toFixed(0)} m`;
+      $('heightRange').innerText = `${Math.min(...hs).toFixed(0)} / ${Math.max(...hs).toFixed(0)} m`;
+      drawElevationChart();
+    }
+
+    function drawElevationChart() {
+      const c = $('elevationCanvas'), ctx = c.getContext('2d'), W = c.width, H = c.height;
+      ctx.clearRect(0, 0, W, H);
+      const wps = state.wps;
+      if (wps.length < 2 || state.takeoff === null) return;
+
+      const total = wps[wps.length - 1].d || 1;
+      const ground = wps.map(w => w.ground);
+      const flight = wps.map(w => state.takeoff + w.h);   // mesma grandeza: altitude absoluta
+      const min = Math.min(...ground) - 5, max = Math.max(...flight) + 5, range = Math.max(1, max - min);
+      const X = (d) => 8 + (d / total) * (W - 16);
+      const Y = (v) => H - 8 - ((v - min) / range) * (H - 16);
+
+      ctx.beginPath();
+      ctx.moveTo(X(0), H);
+      wps.forEach((w, i) => ctx.lineTo(X(w.d), Y(ground[i])));
+      ctx.lineTo(X(total), H); ctx.closePath();
+      ctx.fillStyle = 'rgba(156,163,175,0.25)'; ctx.fill();
+
+      ctx.beginPath();
+      wps.forEach((w, i) => i ? ctx.lineTo(X(w.d), Y(ground[i])) : ctx.moveTo(X(w.d), Y(ground[i])));
+      ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 2; ctx.stroke();
+
+      ctx.beginPath();
+      wps.forEach((w, i) => i ? ctx.lineTo(X(w.d), Y(flight[i])) : ctx.moveTo(X(w.d), Y(flight[i])));
+      ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2.5; ctx.stroke();
+    }
+
+    // ------------------------------------------------------------------
+    // Exportação: KMZ no formato do DJI Fly
+    //  Replica o KMZ gerado pelo próprio Fly (RC 2, Mini 4 Pro):
+    //  template.kml só com missionConfig; waypoints no waylines.wpml;
+    //  ações apenas de gimbal; só o 1º e o último waypoint "param" (os demais passam direto).
+    // ------------------------------------------------------------------
+    async function prepareExport() {
+      if (!state.wps.length) return false;
+      clearTimeout(elevationTimer);
+      const p = readParams();
+      if (p.follow && !terrainReadyNow()) {
+        const ok = await fetchTerrainElevations();
+        if (!ok || !terrainReadyNow()) {
+          if (!confirm('Não foi possível obter o relevo. Exportar como voo plano (altura constante)?')) return false;
+          state.wps.forEach(w => { w.h = p.alt; });
+        }
+      }
+      const minH = Math.min(...state.wps.map(w => w.h));
+      if (minH < 5 && !confirm(`Atenção: há waypoints com altura relativa de apenas ${minH.toFixed(1)} m em relação à decolagem. Exportar mesmo assim?`)) return false;
+      return true;
+    }
+
+    function download(blob, name) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }
+
+    function buildFlyKmz() {
+      const cfg = DRONE.fly;
+      const ns = `xmlns="http://www.opengis.net/kml/2.2" xmlns:wpml="${FLY_NS}"`;
+      const speed = state.meta.speed.toFixed(1);
+      const now = Date.now();
+      const PITCH = -90;
+      const mission = `
+    <wpml:missionConfig>
+      <wpml:flyToWaylineMode>safely</wpml:flyToWaylineMode>
+      <wpml:finishAction>goHome</wpml:finishAction>
+      <wpml:exitOnRCLost>executeLostAction</wpml:exitOnRCLost>
+      <wpml:executeRCLostAction>goBack</wpml:executeRCLostAction>
+      <wpml:globalTransitionalSpeed>${speed}</wpml:globalTransitionalSpeed>
+      <wpml:droneInfo>
+        <wpml:droneEnumValue>${cfg.drone}</wpml:droneEnumValue>
+        <wpml:droneSubEnumValue>${cfg.sub}</wpml:droneSubEnumValue>
+      </wpml:droneInfo>
+    </wpml:missionConfig>`;
+
+      const template = `<?xml version="1.0" encoding="UTF-8"?>
+<kml ${ns}>
+  <Document>
+    <wpml:author>fly</wpml:author>
+    <wpml:createTime>${now}</wpml:createTime>
+    <wpml:updateTime>${now}</wpml:updateTime>${mission}
+  </Document>
+</kml>
+`;
+
+      const n = state.wps.length;
+      let actionId = 1;
+      const marks = state.wps.map((pt, i) => {
+        const firstLast = (i === 0 || i === n - 1);
+        let groups = '';
+        if (i === 0) {
+          groups += `
+        <wpml:actionGroup>
+          <wpml:actionGroupId>1</wpml:actionGroupId>
+          <wpml:actionGroupStartIndex>0</wpml:actionGroupStartIndex>
+          <wpml:actionGroupEndIndex>0</wpml:actionGroupEndIndex>
+          <wpml:actionGroupMode>parallel</wpml:actionGroupMode>
+          <wpml:actionTrigger>
+            <wpml:actionTriggerType>reachPoint</wpml:actionTriggerType>
+          </wpml:actionTrigger>
+          <wpml:action>
+            <wpml:actionId>${actionId++}</wpml:actionId>
+            <wpml:actionActuatorFunc>gimbalRotate</wpml:actionActuatorFunc>
+            <wpml:actionActuatorFuncParam>
+              <wpml:gimbalHeadingYawBase>aircraft</wpml:gimbalHeadingYawBase>
+              <wpml:gimbalRotateMode>absoluteAngle</wpml:gimbalRotateMode>
+              <wpml:gimbalPitchRotateEnable>1</wpml:gimbalPitchRotateEnable>
+              <wpml:gimbalPitchRotateAngle>${PITCH}</wpml:gimbalPitchRotateAngle>
+              <wpml:gimbalRollRotateEnable>0</wpml:gimbalRollRotateEnable>
+              <wpml:gimbalRollRotateAngle>0</wpml:gimbalRollRotateAngle>
+              <wpml:gimbalYawRotateEnable>0</wpml:gimbalYawRotateEnable>
+              <wpml:gimbalYawRotateAngle>0</wpml:gimbalYawRotateAngle>
+              <wpml:gimbalRotateTimeEnable>0</wpml:gimbalRotateTimeEnable>
+              <wpml:gimbalRotateTime>0</wpml:gimbalRotateTime>
+              <wpml:payloadPositionIndex>0</wpml:payloadPositionIndex>
+            </wpml:actionActuatorFuncParam>
+          </wpml:action>
+        </wpml:actionGroup>`;
+        }
+        if (i < n - 1) {
+          groups += `
+        <wpml:actionGroup>
+          <wpml:actionGroupId>2</wpml:actionGroupId>
+          <wpml:actionGroupStartIndex>${i}</wpml:actionGroupStartIndex>
+          <wpml:actionGroupEndIndex>${i + 1}</wpml:actionGroupEndIndex>
+          <wpml:actionGroupMode>parallel</wpml:actionGroupMode>
+          <wpml:actionTrigger>
+            <wpml:actionTriggerType>reachPoint</wpml:actionTriggerType>
+          </wpml:actionTrigger>
+          <wpml:action>
+            <wpml:actionId>${actionId++}</wpml:actionId>
+            <wpml:actionActuatorFunc>gimbalEvenlyRotate</wpml:actionActuatorFunc>
+            <wpml:actionActuatorFuncParam>
+              <wpml:gimbalPitchRotateAngle>${PITCH}</wpml:gimbalPitchRotateAngle>
+              <wpml:gimbalRollRotateAngle>0</wpml:gimbalRollRotateAngle>
+              <wpml:payloadPositionIndex>0</wpml:payloadPositionIndex>
+            </wpml:actionActuatorFuncParam>
+          </wpml:action>
+        </wpml:actionGroup>`;
+        }
+        return `
+      <Placemark>
+        <Point>
+          <coordinates>
+            ${pt.lng.toFixed(8)},${pt.lat.toFixed(8)}
+          </coordinates>
+        </Point>
+        <wpml:index>${i}</wpml:index>
+        <wpml:executeHeight>${pt.h}</wpml:executeHeight>
+        <wpml:waypointSpeed>${speed}</wpml:waypointSpeed>
+        <wpml:waypointHeadingParam>
+          <wpml:waypointHeadingMode>followWayline</wpml:waypointHeadingMode>
+          <wpml:waypointHeadingAngle>0</wpml:waypointHeadingAngle>
+          <wpml:waypointPoiPoint>0.000000,0.000000,0.000000</wpml:waypointPoiPoint>
+          <wpml:waypointHeadingAngleEnable>${firstLast ? 1 : 0}</wpml:waypointHeadingAngleEnable>
+          <wpml:waypointHeadingPathMode>followBadArc</wpml:waypointHeadingPathMode>
+          <wpml:waypointHeadingPoiIndex>0</wpml:waypointHeadingPoiIndex>
+        </wpml:waypointHeadingParam>
+        <wpml:waypointTurnParam>
+          <wpml:waypointTurnMode>${firstLast ? 'toPointAndStopWithContinuityCurvature' : 'toPointAndPassWithContinuityCurvature'}</wpml:waypointTurnMode>
+          <wpml:waypointTurnDampingDist>0</wpml:waypointTurnDampingDist>
+        </wpml:waypointTurnParam>
+        <wpml:useStraightLine>0</wpml:useStraightLine>${groups}
+        <wpml:waypointGimbalHeadingParam>
+          <wpml:waypointGimbalPitchAngle>0</wpml:waypointGimbalPitchAngle>
+          <wpml:waypointGimbalYawAngle>0</wpml:waypointGimbalYawAngle>
+        </wpml:waypointGimbalHeadingParam>
+      </Placemark>`;
+      }).join('');
+
+      const waylines = `<?xml version="1.0" encoding="UTF-8"?>
+<kml ${ns}>
+  <Document>${mission}
+    <Folder>
+      <wpml:templateId>0</wpml:templateId>
+      <wpml:executeHeightMode>relativeToStartPoint</wpml:executeHeightMode>
+      <wpml:waylineId>0</wpml:waylineId>
+      <wpml:distance>0</wpml:distance>
+      <wpml:duration>0</wpml:duration>
+      <wpml:autoFlightSpeed>${speed}</wpml:autoFlightSpeed>${marks}
+    </Folder>
+  </Document>
+</kml>
+`;
+      return { template, waylines };
+    }
+
+    $('btnExport').addEventListener('click', async () => {
+      const btnText = $('btnExportText');
+      btnText.innerText = 'Preparando...';
+      try {
+        if (!(await prepareExport())) return;
+        const { template, waylines } = buildFlyKmz();
+        const zip = new JSZip();
+        const folder = zip.folder('wpmz');
+        folder.file('template.kml', template);
+        folder.file('waylines.wpml', waylines);
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        download(blob, `plano_voo_fly_${Date.now()}.kmz`);
+        const many = state.wps.length > FLY_WP_WARN;
+        toast(`KMZ gerado. No Fly, ligue a foto por intervalo de ${state.meta.interval} s antes de iniciar e confira o gimbal em -90°.` +
+              (many ? ` São ${state.wps.length} waypoints: o Fly pode ficar lento.` : ''), many ? 'warn' : 'info');
+      } catch (err) {
+        toast('Erro ao gerar KMZ: ' + err.message, 'error');
+      } finally {
+        btnText.innerText = 'Exportar KMZ (DJI Fly)';
+      }
+    });
+
+    // Estado inicial
+    $('takeoffElev').disabled = !$('terrainFollow').checked;
+    updateExportButtons();
+  </script>
+</body>
+</html>
