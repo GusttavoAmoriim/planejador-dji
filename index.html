@@ -29,7 +29,13 @@
         <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span> Planejador de Voo
         </h1>
-        <p class="text-xs text-gray-400 mt-1">DJI Mini 4 Pro · mapeamento · KMZ para o DJI Fly</p>
+        <p id="subTitle" class="text-xs text-gray-400 mt-1">DJI Mini 4 Pro · mapeamento · KMZ para o DJI Fly</p>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1 bg-gray-900 p-1 rounded-xl border border-gray-800">
+        <button id="tabPadrao" class="py-2 px-1 text-[11px] leading-tight font-semibold rounded-lg bg-emerald-600 text-white transition">Planejamento padrão</button>
+        <button id="tabFachada" class="py-2 px-1 text-[11px] leading-tight font-semibold rounded-lg text-gray-300 hover:bg-gray-800 transition">Levantamento de fachada</button>
+        <button id="tabLinear" class="py-2 px-1 text-[11px] leading-tight font-semibold rounded-lg text-gray-300 hover:bg-gray-800 transition">Voo linear (vias)</button>
       </div>
 
       <div>
@@ -40,6 +46,7 @@
         </label>
       </div>
 
+      <div id="panelPadrao" class="space-y-4">
       <div>
         <div class="flex justify-between text-sm mb-1">
           <span class="text-gray-300">Altitude de Voo (AGL)</span>
@@ -149,12 +156,228 @@
         <div class="flex justify-between text-xs"><span class="text-gray-400">Fotos (estimado):</span><span id="statPhotos" class="font-semibold text-white">--</span></div>
         <div class="flex justify-between text-xs"><span class="text-gray-400">Tempo de voo (estimado):</span><span id="statTime" class="font-semibold text-white">--</span></div>
       </div>
+      </div>
+
+      <!-- ===================== ABA: LEVANTAMENTO DE FACHADA ===================== -->
+      <div id="panelFachada" class="space-y-4 hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-3 text-[11px] text-gray-400 leading-relaxed">
+          Desenhe ou importe o <strong class="text-gray-200">contorno da edificação</strong>. O planejador cria anéis ao redor dela, a uma distância fixa da parede, com a câmera a 0° apontada para a parede. A velocidade sai do intervalo de foto escolhido.
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Distância da parede (m)</label>
+            <input type="number" id="facDist" min="2" max="30" step="0.5" value="5" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+            <div class="flex gap-1 mt-1">
+              <button id="btnFacD3" class="flex-1 text-[11px] bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-gray-300 py-0.5">3 m</button>
+              <button id="btnFacD5" class="flex-1 text-[11px] bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-gray-300 py-0.5">5 m</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Altura da edificação (m)</label>
+            <input type="number" id="facHeight" min="1" max="100" step="0.5" value="9" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Sobrep. horizontal (no anel)</label>
+            <select id="facOvH" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="0.60">60%</option><option value="0.65">65%</option><option value="0.70">70%</option>
+              <option value="0.75" selected>75%</option><option value="0.80">80%</option><option value="0.85">85%</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Sobrep. vertical (entre anéis)</label>
+            <select id="facOvV" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="0.60">60%</option><option value="0.65">65%</option><option value="0.70" selected>70%</option>
+              <option value="0.75">75%</option><option value="0.80">80%</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Intervalo entre fotos</label>
+            <select id="facInterval" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="2">2 s</option><option value="3" selected>3 s</option><option value="5">5 s</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Sentido do voo</label>
+            <select id="facDir" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="ccw" selected>Anti-horário</option><option value="cw">Horário</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Ordem dos anéis</label>
+            <select id="facOrder" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="down" selected>De cima para baixo</option><option value="up">De baixo para cima</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Ao terminar</label>
+            <select id="facFinish" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="noAction" selected>Pairar (pouso manual)</option><option value="goHome">Voltar para casa</option>
+            </select>
+          </div>
+        </div>
+        <p class="text-[11px] -mt-2 text-gray-500">De cima para baixo termina perto do chão e do ponto de partida, com a bateria mais baixa.</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Cota da base da fachada (m)</label>
+            <input type="number" id="facBase" step="0.1" value="0" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Tempo máx. por voo (min)</label>
+            <input type="number" id="facMaxMin" min="5" max="40" step="1" value="18" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+        </div>
+        <p class="text-[11px] -mt-2 text-gray-500">Cota da base: diferença de nível entre a base da parede e o ponto de decolagem. Positiva se a base for mais alta que a decolagem. Alturas no arquivo são relativas à decolagem. O relevo (DEM) não é usado aqui: a resolução de 90 m não serve para escala de metros.</p>
+
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Ponto de partida dos anéis</label>
+          <div class="flex gap-2">
+            <button id="btnFacStart" class="flex-1 text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1.5 rounded border border-gray-700 text-gray-200">Definir partida no mapa</button>
+            <button id="btnFacStartClear" class="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1.5 rounded border border-gray-700 text-gray-400">Limpar</button>
+          </div>
+          <p class="text-[11px] mt-1 text-gray-500">Os anéis começam no ponto do trajeto mais próximo do que você clicar. Escolha perto de onde vai decolar.</p>
+        </div>
+
+        <div id="facWarn" class="hidden bg-amber-950/70 border border-amber-700 rounded-lg p-2.5 text-[11px] text-amber-200 space-y-1"></div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-3.5 space-y-1.5">
+          <div class="flex justify-between text-xs bg-emerald-950/60 border border-emerald-800 rounded-lg px-2 py-1.5"><span class="text-emerald-300 font-semibold">Intervalo da foto (use no Fly):</span><span id="facStatInterval" class="font-bold text-emerald-300">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Velocidade (já no KMZ):</span><span id="facStatSpeed" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Sobrep. horizontal real:</span><span id="facStatOv" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Pegada na parede:</span><span id="facStatFoot" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">GSD na parede:</span><span id="facStatGSD" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Anéis / espaçamento:</span><span id="facStatRings" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Alturas (rel. decolagem):</span><span id="facStatH" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Perímetro do anel:</span><span id="facStatPerim" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Dist. mín. real da parede:</span><span id="facStatWall" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Waypoints:</span><span id="facStatWps" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Fotos (estimado):</span><span id="facStatPhotos" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Tempo total (estimado):</span><span id="facStatTime" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Voos (baterias) / anéis:</span><span id="facStatParts" class="font-semibold text-white">--</span></div>
+        </div>
+        <p id="facRthNote" class="text-[11px] text-gray-500"></p>
+      </div>
+
+      <div id="panelLinear" class="space-y-4 hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-3 text-[11px] text-gray-400 leading-relaxed">
+          Trace (ferramenta de linha) ou importe o <strong class="text-gray-200">eixo da via</strong>. O planejador voa a câmera a -90° <strong class="text-gray-200">acima dos prédios</strong>, com uma ou mais passadas paralelas ao eixo, para cobrir a largura de fachada a fachada. A velocidade sai do intervalo de foto.
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Largura fachada a fachada (m)</label>
+            <input type="number" id="linWidth" min="10" max="200" step="1" value="50" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Altura do obstáculo mais alto (m)</label>
+            <input type="number" id="linObs" min="0" max="150" step="1" value="40" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Folga acima do obstáculo (m)</label>
+            <input type="number" id="linClear" min="10" max="100" step="1" value="30" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Margem lateral (m)</label>
+            <input type="number" id="linMargin" min="0" max="30" step="1" value="3" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+        </div>
+        <p class="text-[11px] -mt-2 text-gray-500">Altura de voo = obstáculo + folga, relativa ao ponto de decolagem. Decole na própria via, no nível do piso. A cobertura lateral é calculada no nível do topo dos prédios (o pior caso).</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Sobrep. frontal</label>
+            <select id="linOvF" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="0.75">75%</option><option value="0.80" selected>80%</option><option value="0.85">85%</option><option value="0.90">90%</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Sobrep. lateral (entre passadas)</label>
+            <select id="linOvL" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="0.60">60%</option><option value="0.65" selected>65%</option><option value="0.70">70%</option><option value="0.75">75%</option><option value="0.80">80%</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Intervalo entre fotos</label>
+            <select id="linInterval" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="2">2 s</option><option value="3" selected>3 s</option><option value="5">5 s</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Passadas</label>
+            <select id="linPasses" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="auto" selected>Automático</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Começar por</label>
+            <select id="linStart" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="a" selected>1º ponto da linha</option><option value="b">Último ponto da linha</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Extensão nas pontas (m)</label>
+            <input type="number" id="linExt" min="0" max="60" step="5" value="20" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Ao terminar</label>
+            <select id="linFinish" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+              <option value="goHome" selected>Voltar para casa</option><option value="noAction">Pairar (pouso manual)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Tempo máx. por voo (min)</label>
+            <input type="number" id="linMaxMin" min="5" max="40" step="1" value="18" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white">
+          </div>
+        </div>
+
+        <div id="linWarn" class="hidden bg-amber-950/70 border border-amber-700 rounded-lg p-2.5 text-[11px] text-amber-200 space-y-1"></div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-3.5 space-y-1.5">
+          <div class="flex justify-between text-xs bg-emerald-950/60 border border-emerald-800 rounded-lg px-2 py-1.5"><span class="text-emerald-300 font-semibold">Intervalo da foto (use no Fly):</span><span id="linStatInterval" class="font-bold text-emerald-300">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Altura de voo (rel. decolagem):</span><span id="linStatAlt" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Velocidade (já no KMZ):</span><span id="linStatSpeed" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Passadas / espaçamento:</span><span id="linStatPasses" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Pegada no topo dos prédios:</span><span id="linStatFootTop" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Pegada no piso da via:</span><span id="linStatFootGnd" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">GSD (piso / topo):</span><span id="linStatGSD" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Sobrep. frontal (topo / piso):</span><span id="linStatOvF" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Sobrep. lateral (topo):</span><span id="linStatOvL" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Comprimento da via:</span><span id="linStatLen" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Waypoints:</span><span id="linStatWps" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Fotos (estimado):</span><span id="linStatPhotos" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Tempo total (estimado):</span><span id="linStatTime" class="font-semibold text-white">--</span></div>
+          <div class="flex justify-between text-xs"><span class="text-gray-400">Voos (baterias):</span><span id="linStatParts" class="font-semibold text-white">--</span></div>
+        </div>
+        <p id="linRthNote" class="text-[11px] text-gray-500"></p>
+      </div>
     </div>
 
-    <div class="pt-3 border-t border-gray-800 mt-4">
+    <div id="footPadrao" class="pt-3 border-t border-gray-800 mt-4">
       <button id="btnExport" disabled class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl transition duration-150 flex items-center justify-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
         <span id="btnExportText">Exportar KMZ (DJI Fly)</span>
+      </button>
+    </div>
+    <div id="footFachada" class="pt-3 border-t border-gray-800 mt-4 hidden">
+      <button id="btnExportFac" disabled class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl transition duration-150 flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        <span id="btnExportFacText">Exportar KMZ (fachada)</span>
+      </button>
+    </div>
+    <div id="footLinear" class="pt-3 border-t border-gray-800 mt-4 hidden">
+      <button id="btnExportLin" disabled class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl transition duration-150 flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        <span id="btnExportLinText">Exportar KMZ (via)</span>
       </button>
     </div>
   </aside>
@@ -204,6 +427,10 @@
     const elevCache = new Map();   // "lat,lng" -> elevação (m)
     const cacheKey = (lat, lng) => lat.toFixed(5) + ',' + lng.toFixed(5);
 
+    let mode = 'padrao';           // aba ativa: 'padrao' | 'fachada'
+    const fac = { feature: null, startPt: null, picking: false, plan: null };
+    const lin = { feature: null, plan: null };   // estado da aba de fachada
+
     // ------------------------------------------------------------------
     // Toast
     // ------------------------------------------------------------------
@@ -242,11 +469,20 @@
 
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
-    map.addControl(new L.Control.Draw({
-      position: 'topleft',
-      draw: { polygon: { allowIntersection: false, showArea: true }, rectangle: true, circle: false, circlemarker: false, marker: false, polyline: false },
-      edit: { featureGroup: drawnItems }
-    }));
+    let drawCtl = null;
+    function setDrawControl(kind) {
+      if (drawCtl) map.removeControl(drawCtl);
+      const off = { circle: false, circlemarker: false, marker: false };
+      drawCtl = new L.Control.Draw({
+        position: 'topleft',
+        draw: kind === 'line'
+          ? Object.assign({ polygon: false, rectangle: false, polyline: { shapeOptions: { color: '#f59e0b', weight: 4 }, metric: true } }, off)
+          : Object.assign({ polygon: { allowIntersection: false, showArea: true }, rectangle: true, polyline: false }, off),
+        edit: { featureGroup: drawnItems }
+      });
+      map.addControl(drawCtl);
+    }
+    setDrawControl('polygon');
 
     const flightLayer = L.layerGroup().addTo(map);
     const waypointsMarkersLayer = L.layerGroup().addTo(map);
@@ -254,16 +490,23 @@
     map.on(L.Draw.Event.CREATED, (e) => {
       drawnItems.clearLayers();
       drawnItems.addLayer(e.layer);
+      if (mode === 'linear') { lin.feature = e.layer.toGeoJSON(); linRecompute(); return; }
+      if (mode === 'fachada') { fac.feature = e.layer.toGeoJSON(); facRecompute(); return; }
       activeFeature = e.layer.toGeoJSON();
       takeoffEdited = false;
       recomputeGrid(true);
     });
     map.on(L.Draw.Event.EDITED, () => {
       const layers = drawnItems.getLayers();
-      if (layers.length) { activeFeature = layers[0].toGeoJSON(); recomputeGrid(true); }
+      if (!layers.length) return;
+      if (mode === 'linear') { lin.feature = layers[0].toGeoJSON(); linRecompute(); return; }
+      if (mode === 'fachada') { fac.feature = layers[0].toGeoJSON(); facRecompute(); return; }
+      activeFeature = layers[0].toGeoJSON(); recomputeGrid(true);
     });
     map.on(L.Draw.Event.DELETED, () => {
       if (drawnItems.getLayers().length) return;
+      if (mode === 'linear') { lin.feature = null; linRecompute(); return; }
+      if (mode === 'fachada') { fac.feature = null; facRecompute(); return; }
       activeFeature = null;
       state.wps = []; state.lines = [];
       flightLayer.clearLayers(); waypointsMarkersLayer.clearLayers();
@@ -330,6 +573,32 @@
       return turf.polygon(rings);
     }
 
+    function lineFromKML(text) {
+      const xml = new DOMParser().parseFromString(text, 'text/xml');
+      if (xml.getElementsByTagName('parsererror').length) throw new Error('KML inválido.');
+      let best = null;
+      Array.from(xml.getElementsByTagName('LineString')).forEach(ls => {
+        const c = ls.getElementsByTagName('coordinates')[0];
+        if (!c) return;
+        const pts = c.textContent.trim().split(/\s+/).map(t => t.split(',').map(Number).slice(0, 2)).filter(q => Number.isFinite(q[0]) && Number.isFinite(q[1]));
+        if (pts.length >= 2 && (!best || pts.length > best.length)) best = pts;
+      });
+      if (!best) throw new Error('Nenhuma linha (LineString) encontrada no KML.');
+      return turf.lineString(best);
+    }
+
+    function lineFromGeoJSON(geo) {
+      const pick = (g) => {
+        if (!g) return null;
+        if (g.type === 'LineString') return g.coordinates;
+        if (g.type === 'MultiLineString') return g.coordinates.reduce((a, b) => (b.length > a.length ? b : a), []);
+        return null;
+      };
+      const list = geo.type === 'FeatureCollection' ? geo.features.map(f => f.geometry) : geo.type === 'Feature' ? [geo.geometry] : [geo];
+      for (const g of list) { const c = pick(g); if (c && c.length >= 2) return turf.lineString(c.map(q => [q[0], q[1]])); }
+      throw new Error('Nenhuma linha encontrada no GeoJSON.');
+    }
+
     function featureFromGeoJSON(geo) {
       const isPoly = (g) => g && /^(Multi)?Polygon$/.test(g.type);
       if (geo.type === 'FeatureCollection') {
@@ -349,14 +618,17 @@
       $('fileName').innerText = file.name;
       try {
         const text = await file.text();
-        const feature = file.name.toLowerCase().endsWith('.kml') ? featureFromKML(text) : featureFromGeoJSON(JSON.parse(text));
+        const isKml = file.name.toLowerCase().endsWith('.kml');
+        const feature = mode === 'linear'
+          ? (isKml ? lineFromKML(text) : lineFromGeoJSON(JSON.parse(text)))
+          : (isKml ? featureFromKML(text) : featureFromGeoJSON(JSON.parse(text)));
         drawnItems.clearLayers();
         const layer = L.geoJSON(feature);
         layer.eachLayer(l => drawnItems.addLayer(l));
-        activeFeature = feature;
-        takeoffEdited = false;
         map.fitBounds(layer.getBounds(), { padding: [40, 40] });
-        recomputeGrid(true);
+        if (mode === 'linear') { lin.feature = feature; linRecompute(); }
+        else if (mode === 'fachada') { fac.feature = feature; facRecompute(); }
+        else { activeFeature = feature; takeoffEdited = false; recomputeGrid(true); }
       } catch (err) {
         toast('Erro ao ler o arquivo: ' + err.message, 'error');
       }
@@ -905,6 +1177,759 @@
       } finally {
         btnText.innerText = 'Exportar KMZ (DJI Fly)';
       }
+    });
+
+    // ==================================================================
+    // ABA: LEVANTAMENTO DE FACHADA
+    //  Anéis ao redor da edificação, a uma distância fixa da parede, câmera a 0° apontada
+    //  para a parede. Formato do KMZ copiado de missões geradas pelo próprio DJI Fly:
+    //  proa "Custom" = waypointHeadingMode smoothTransition + waypointHeadingAngle
+    //  (graus, 0 = norte, sentido horário), confirmado em KMZ de teste do Fly.
+    // ==================================================================
+    const FAC_MIN_SPEED = 0.1, FAC_MAX_SPEED = 3;   // m/s (faixa do waypoint no Fly: 0,1 a 15)
+    const FAC_MAX_WP_FILE = 150;                    // waypoints por arquivo (o Fly aceita ~200)
+    const FAC_TOP_MARGIN = 1.0;                     // folga (m) do quadro acima do topo da fachada
+    const FAC_MIN_RING_H = 1.5;                     // altura mínima do 1º anel (m)
+    const FAC_OVERHEAD_S = 60;                      // subida, aproximação e margem por voo (s)
+    const facLayer = L.layerGroup();
+
+    function distPtSeg(p, a, b) {
+      const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+      let t = l2 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+    }
+
+    // Ponto do contorno (anel fechado) mais próximo de p
+    function nearestOnRing(p, ring) {
+      let best = { d: Infinity, x: 0, y: 0 };
+      for (let i = 0; i < ring.length; i++) {
+        const a = ring[i], b = ring[(i + 1) % ring.length];
+        const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+        let t = l2 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2 : 0;
+        t = Math.max(0, Math.min(1, t));
+        const x = a[0] + t * dx, y = a[1] + t * dy, d = Math.hypot(p[0] - x, p[1] - y);
+        if (d < best.d) best = { d, x, y };
+      }
+      return best;
+    }
+
+    const signedArea = (r) => r.reduce((s, p, i) => { const q = r[(i + 1) % r.length]; return s + (p[0] * q[1] - q[0] * p[1]); }, 0) / 2;
+
+    function rdp(pts, tol) {
+      if (pts.length < 3) return pts;
+      const a = pts[0], b = pts[pts.length - 1];
+      let idx = -1, dmax = 0;
+      for (let i = 1; i < pts.length - 1; i++) { const d = distPtSeg(pts[i], a, b); if (d > dmax) { dmax = d; idx = i; } }
+      if (dmax <= tol) return [a, b];
+      return rdp(pts.slice(0, idx + 1), tol).slice(0, -1).concat(rdp(pts.slice(idx), tol));
+    }
+
+    // Simplifica um anel fechado removendo vértices quase alinhados
+    function simplifyClosed(pts, tol) {
+      let k = 0, dm = -1;
+      pts.forEach((p, i) => { const d = Math.hypot(p[0] - pts[0][0], p[1] - pts[0][1]); if (d > dm) { dm = d; k = i; } });
+      if (k === 0) return pts;
+      const A = rdp(pts.slice(0, k + 1), tol);
+      const B = rdp(pts.slice(k).concat([pts[0]]), tol);
+      return A.slice(0, -1).concat(B.slice(0, -1));
+    }
+
+    // Plano de voo da fachada (função pura: usa só turf e as constantes do drone)
+    function buildFacadePlan(feature, p, startLL) {
+      const cam = DRONE.cam;
+      const g = feature && feature.geometry;
+      const polys = !g ? [] : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+      if (!polys.length) return { error: 'Desenhe ou importe o contorno da edificação (polígono).' };
+      let outer = polys[0][0], bestA = -1;
+      polys.forEach(pc => { const a = turf.area(turf.polygon([pc[0]])); if (a > bestA) { bestA = a; outer = pc[0]; } });
+
+      const bb = turf.bbox(turf.polygon([outer]));
+      const lng0 = (bb[0] + bb[2]) / 2, lat0 = (bb[1] + bb[3]) / 2;
+      const { kx, ky } = metersPerDeg(lat0);
+      const toM = (c) => [(c[0] - lng0) * kx, (c[1] - lat0) * ky];
+      const toLL = (m) => [lng0 + m[0] / kx, lat0 + m[1] / ky];
+      const D = p.dist;
+
+      // Afastamento do contorno: buffer com cantos arredondados (distância constante da parede)
+      const buf = turf.buffer(turf.polygon([outer]), D, { units: 'meters', steps: 3 });
+      if (!buf || !buf.geometry) return { error: 'Não foi possível calcular o afastamento do contorno.' };
+      const bpolys = buf.geometry.type === 'Polygon' ? [buf.geometry.coordinates] : buf.geometry.coordinates;
+      let bring = bpolys[0][0], ba = -1;
+      bpolys.forEach(pc => { const a = turf.area(turf.polygon([pc[0]])); if (a > ba) { ba = a; bring = pc[0]; } });
+
+      const wallM = outer.slice(0, -1).map(toM);
+      let V = simplifyClosed(bring.slice(0, -1).map(toM), 0.4);
+      if (V.length < 3) return { error: 'Contorno muito pequeno.' };
+      if ((signedArea(V) > 0) !== (p.dir === 'ccw')) V.reverse();
+      if (startLL) {
+        const s = toM([startLL.lng, startLL.lat]);
+        let k = 0, dm = Infinity;
+        V.forEach((v, i) => { const d = Math.hypot(v[0] - s[0], v[1] - s[1]); if (d < dm) { dm = d; k = i; } });
+        V = V.slice(k).concat(V.slice(0, k));
+      }
+      const n = V.length;
+
+      // Proa de cada waypoint: direção do ponto mais próximo da parede (0° = norte, horário, -180..180)
+      const H = V.map(v => {
+        const q = nearestOnRing(v, wallM);
+        let a = Math.round(Math.atan2(q.x - v[0], q.y - v[1]) * 180 / Math.PI);
+        if (a <= -180) a += 360;
+        return a;
+      });
+
+      let P = 0, minWall = Infinity;
+      for (let i = 0; i < n; i++) {
+        const a = V[i], b = V[(i + 1) % n];
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        P += len;
+        const k = Math.max(1, Math.ceil(len / 0.5));
+        for (let s = 0; s <= k; s++) {
+          const t = s / k;
+          const q = nearestOnRing([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], wallM);
+          if (q.d < minWall) minWall = q.d;
+        }
+      }
+
+      // Pegada na parede (câmera em paisagem, a 0°): largura = sensor maior, altura = sensor menor
+      const W = D * cam.sensorW / cam.focal, Hf = D * cam.sensorH / cam.focal;
+      const gsd = D * cam.sensorW / (cam.focal * cam.pxW) * 1000;   // mm/px
+      const vStep = Hf * (1 - p.ovV);
+
+      // Alturas dos anéis (acima da base da fachada): o 1º cobre a base; o último cobre o topo + folga
+      const zFirst = Math.max(FAC_MIN_RING_H, Hf / 2);
+      const zLast = p.bh + FAC_TOP_MARGIN - Hf / 2;
+      const zs = [];
+      if (zLast <= zFirst + 1e-6) zs.push(zFirst);
+      else {
+        const nR = Math.ceil((zLast - zFirst) / vStep - 1e-9) + 1;
+        for (let i = 0; i < nR; i++) zs.push(zFirst + (zLast - zFirst) * i / (nR - 1));
+      }
+      if (p.order === 'down') zs.reverse();
+      const rings = zs.map(z => ({ z, h: +(z + p.baseDelta).toFixed(2) }));
+
+      // Velocidade: espaçamento horizontal entre fotos / intervalo
+      const vRaw = W * (1 - p.ovH) / p.interval;
+      const v = Math.max(FAC_MIN_SPEED, Math.floor(Math.min(FAC_MAX_SPEED, Math.max(FAC_MIN_SPEED, vRaw)) * 100) / 100);
+      const ovReal = 1 - v * p.interval / W;
+
+      // Waypoints: cada anel = n vértices + volta ao início; o anel seguinte começa no mesmo ponto, mais alto (subida vertical)
+      const wps = [];
+      rings.forEach((rg, ri) => {
+        for (let j = 0; j <= n; j++) {
+          const k = j % n, ll = toLL(V[k]);
+          wps.push({ x: V[k][0], y: V[k][1], lng: ll[0], lat: ll[1], heading: H[k], h: rg.h, ring: ri });
+        }
+      });
+      wps.forEach((w, i) => { const q = wps[i - 1]; w.d = q ? q.d + Math.hypot(w.x - q.x, w.y - q.y, w.h - q.h) : 0; });
+
+      // Divisão em voos (baterias) por tempo e por número de waypoints
+      const maxSec = p.maxMin * 60, ringWps = n + 1;
+      const parts = [];
+      let cur = null;
+      rings.forEach((rg, ri) => {
+        const dz = ri > 0 ? Math.abs(rg.h - rings[ri - 1].h) : 0;
+        const cost = (P + dz) / v;
+        const fits = cur && (cur.time + cost + FAC_OVERHEAD_S <= maxSec) && ((cur.rings + 1) * ringWps <= FAC_MAX_WP_FILE);
+        if (!fits) { cur = { from: ri, to: ri, rings: 0, time: 0 }; parts.push(cur); cur.time += P / v; }
+        else cur.time += cost;
+        cur.to = ri; cur.rings++;
+      });
+      parts.forEach(pt => { pt.wps = wps.filter(w => w.ring >= pt.from && w.ring <= pt.to); pt.time += FAC_OVERHEAD_S; });
+
+      return {
+        wps, parts, rings, V, H,
+        meta: {
+          D, W, Hf, gsd, vStep, nRings: rings.length, perim: P, speed: v, speedRaw: vRaw, interval: p.interval, ovReal,
+          photos: Math.ceil(rings.length * P / (v * p.interval)), nWps: wps.length, nPerRing: n,
+          totalTime: parts.reduce((s, x) => s + x.time, 0), minWall,
+          hMin: Math.min(...rings.map(r => r.h)), hMax: Math.max(...rings.map(r => r.h)),
+          ringTooLong: P / v + FAC_OVERHEAD_S > maxSec
+        }
+      };
+    }
+
+    function facParams() {
+      const num = (id, def) => { const x = parseFloat($(id).value); return Number.isFinite(x) ? x : def; };
+      return {
+        dist: Math.min(30, Math.max(2, num('facDist', 5))),
+        bh: Math.max(1, num('facHeight', 9)),
+        ovH: num('facOvH', 0.75),
+        ovV: num('facOvV', 0.70),
+        interval: num('facInterval', 3),
+        dir: $('facDir').value,
+        order: $('facOrder').value,
+        baseDelta: num('facBase', 0),
+        finish: $('facFinish').value,
+        maxMin: Math.max(5, num('facMaxMin', 18))
+      };
+    }
+
+    const fmtTime = (s) => `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
+    const FAC_STAT_IDS = ['facStatInterval', 'facStatSpeed', 'facStatOv', 'facStatFoot', 'facStatGSD', 'facStatRings', 'facStatH',
+                          'facStatPerim', 'facStatWall', 'facStatWps', 'facStatPhotos', 'facStatTime', 'facStatParts'];
+
+    function facResetStats() {
+      FAC_STAT_IDS.forEach(id => $(id).innerText = '--');
+      $('facWarn').classList.add('hidden');
+      $('facRthNote').innerText = '';
+    }
+
+    function facUpdateStats(plan, p) {
+      const m = plan.meta;
+      $('facStatInterval').innerText = `${m.interval} s`;
+      $('facStatSpeed').innerText = `${m.speed.toFixed(2)} m/s (${(m.speed * 3.6).toFixed(1)} km/h)`;
+      $('facStatOv').innerText = `${(m.ovReal * 100).toFixed(0)}% (fotos a cada ${(m.speed * m.interval).toFixed(2)} m)`;
+      $('facStatFoot').innerText = `${m.W.toFixed(1)} × ${m.Hf.toFixed(1)} m`;
+      $('facStatGSD').innerText = `${m.gsd.toFixed(2)} mm/px`;
+      $('facStatRings').innerText = `${m.nRings} / ${m.nRings > 1 ? m.vStep.toFixed(2) + ' m (máx.)' : '--'}`;
+      $('facStatH').innerText = `${m.hMin.toFixed(1)} a ${m.hMax.toFixed(1)} m`;
+      $('facStatPerim').innerText = `${m.perim.toFixed(0)} m`;
+      $('facStatWall').innerText = `${m.minWall.toFixed(1)} m`;
+      $('facStatWps').innerText = `${m.nWps} (${m.nPerRing + 1} por anel)`;
+      $('facStatPhotos').innerText = `~${m.photos}`;
+      $('facStatTime').innerText = fmtTime(m.totalTime);
+      const label = (pt) => pt.from === pt.to ? `${pt.from + 1}` : `${pt.from + 1}-${pt.to + 1}`;
+      $('facStatParts').innerText = `${plan.parts.length} (${plan.parts.map(label).join(' | ')})`;
+
+      const warns = [];
+      if (p.dist < 5) warns.push(`A ${p.dist} m da parede sobra pouca margem: o erro do GPS (maior perto de paredes e estruturas metálicas) e o erro do polígono consomem a distância. Use só com vento fraco e contorno medido na parede.`);
+      if (m.speed < 0.3) warns.push(`Velocidade muito baixa (${m.speed.toFixed(2)} m/s). Confirme no Fly que o waypoint aceita esse valor e que ele aparece igual ao do arquivo.`);
+      if (m.speedRaw > FAC_MAX_SPEED + 1e-9) warns.push(`Velocidade limitada a ${FAC_MAX_SPEED} m/s; a sobreposição real ficou ${(m.ovReal * 100).toFixed(0)}%.`);
+      if (m.speedRaw < FAC_MIN_SPEED - 1e-9) warns.push(`Velocidade limitada ao mínimo de ${FAC_MIN_SPEED} m/s; a sobreposição real ficou ${(m.ovReal * 100).toFixed(0)}%.`);
+      if (m.minWall < p.dist - 0.6) warns.push(`O trajeto chega a ${m.minWall.toFixed(1)} m da parede (menos que os ${p.dist} m pedidos) por causa da simplificação do contorno. Confira no mapa.`);
+      if (plan.parts.length > 1) warns.push(`A missão foi dividida em ${plan.parts.length} voos (um arquivo por voo), por tempo máximo (${p.maxMin} min) ou por número de waypoints. Cada voo recomeça no mesmo ponto de partida.`);
+      if (m.ringTooLong) warns.push(`Um único anel já passa do tempo máximo por voo. Aumente a distância da parede, reduza a sobreposição ou use o intervalo de 2 s.`);
+      if (m.hMax > 120) warns.push(`Há anéis acima de 120 m em relação à decolagem.`);
+      if (m.hMin < 1) warns.push(`Há anéis a menos de 1 m de altura em relação à decolagem. Confira a cota da base da fachada.`);
+      const box = $('facWarn');
+      box.classList.toggle('hidden', warns.length === 0);
+      box.innerHTML = warns.map(w => `<div>⚠ ${w}</div>`).join('');
+
+      $('facRthNote').innerText = `Antes de voar: no Fly, ajuste a altura de retorno (RTH) para pelo menos ${Math.ceil(p.bh + 15)} m e confira se a seta de proa de cada waypoint aponta para a parede.`;
+    }
+
+    function facUpdateButtons() {
+      $('btnExportFac').disabled = !fac.plan;
+      const k = fac.plan ? fac.plan.parts.length : 1;
+      $('btnExportFacText').innerText = k > 1 ? `Exportar ${k} KMZ (fachada)` : 'Exportar KMZ (fachada)';
+    }
+
+    function facDraw(plan) {
+      facLayer.clearLayers();
+      const r0 = plan.wps.filter(w => w.ring === 0);
+      L.polyline(r0.map(w => [w.lat, w.lng]), { color: '#22d3ee', weight: 3, opacity: 0.95 }).addTo(facLayer);
+      // Para onde a câmera aponta em cada waypoint do 1º anel (os demais anéis repetem a mesma planta)
+      const len = Math.min(2.5, plan.meta.D * 0.5);
+      r0.slice(0, -1).forEach(w => {
+        const a = w.heading * Math.PI / 180, mp = metersPerDeg(w.lat);
+        L.polyline([[w.lat, w.lng], [w.lat + Math.cos(a) * len / mp.ky, w.lng + Math.sin(a) * len / mp.kx]],
+                   { color: '#f59e0b', weight: 2, opacity: 0.9 }).addTo(facLayer);
+        L.circleMarker([w.lat, w.lng], { radius: 2.5, color: '#67e8f9', weight: 1, fillOpacity: 0.9 }).addTo(facLayer);
+      });
+      const first = plan.wps[0], last = plan.wps[plan.wps.length - 1], second = plan.wps[1];
+      L.circleMarker([last.lat, last.lng], { radius: 11, color: '#fff', weight: 2, fillColor: '#3b82f6', fillOpacity: 1 })
+        .bindTooltip('Último waypoint (fim da missão)').addTo(facLayer);
+      L.circleMarker([first.lat, first.lng], { radius: 6, color: '#fff', weight: 2, fillColor: '#ef4444', fillOpacity: 1 })
+        .bindTooltip('1º waypoint (início)').addTo(facLayer);
+      if (second) L.circleMarker([second.lat, second.lng], { radius: 4, color: '#fff', weight: 2, fillColor: '#fde047', fillOpacity: 1 })
+        .bindTooltip('2º waypoint (indica o sentido do voo)').addTo(facLayer);
+    }
+
+    function facRecompute() {
+      facLayer.clearLayers();
+      if (!fac.feature) { fac.plan = null; facUpdateButtons(); facResetStats(); return; }
+      const p = facParams();
+      let plan;
+      try { plan = buildFacadePlan(fac.feature, p, fac.startPt); } catch (err) { plan = { error: 'Erro ao calcular a fachada: ' + err.message }; }
+      if (plan.error) { fac.plan = null; facUpdateButtons(); facResetStats(); toast(plan.error, 'warn'); return; }
+      fac.plan = plan;
+      facDraw(plan);
+      facUpdateStats(plan, p);
+      facUpdateButtons();
+    }
+
+    // --- Entradas da aba ---
+    let facTimer = null;
+    const facSchedule = () => { clearTimeout(facTimer); facTimer = setTimeout(facRecompute, 150); };
+    ['facDist', 'facHeight', 'facBase', 'facMaxMin'].forEach(id => $(id).addEventListener('input', facSchedule));
+    ['facOvH', 'facOvV', 'facInterval', 'facDir', 'facOrder', 'facFinish'].forEach(id => $(id).addEventListener('change', facRecompute));
+    $('btnFacD3').addEventListener('click', () => { $('facDist').value = 3; facRecompute(); });
+    $('btnFacD5').addEventListener('click', () => { $('facDist').value = 5; facRecompute(); });
+
+    function facTogglePick(on) {
+      fac.picking = on;
+      $('btnFacStart').innerText = on ? 'Clique no mapa (cancelar)' : 'Definir partida no mapa';
+      map.getContainer().style.cursor = on ? 'crosshair' : '';
+    }
+    $('btnFacStart').addEventListener('click', () => facTogglePick(!fac.picking));
+    $('btnFacStartClear').addEventListener('click', () => { fac.startPt = null; facTogglePick(false); facRecompute(); });
+    map.on('click', (e) => {
+      if (!fac.picking || mode !== 'fachada') return;
+      fac.startPt = { lat: e.latlng.lat, lng: e.latlng.lng };
+      facTogglePick(false);
+      facRecompute();
+    });
+    map.on(L.Draw.Event.DRAWSTART, () => { if (fac.picking) facTogglePick(false); });
+
+    // --- Alternância de abas ---
+    const HINT_PADRAO = 'Desenhe ou importe a área. Marcador <span class="text-red-400 font-semibold">vermelho</span> = 1º waypoint, <span class="text-blue-400 font-semibold">azul</span> = último. Linha tracejada = folga de curva.';
+    const HINT_FACHADA = 'Desenhe ou importe o contorno da edificação. <span class="text-red-400 font-semibold">Vermelho</span> = início, <span class="text-blue-400 font-semibold">azul</span> = fim, <span class="text-amber-400 font-semibold">laranja</span> = direção da câmera, <span class="text-yellow-300 font-semibold">amarelo</span> = 2º waypoint (sentido).';
+    const TAB_ON = 'py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white transition';
+    const TAB_OFF = 'py-2 text-xs font-semibold rounded-lg text-gray-300 hover:bg-gray-800 transition';
+
+    function showFeatureOnMap(f) {
+      drawnItems.clearLayers();
+      if (f) L.geoJSON(f).eachLayer(l => drawnItems.addLayer(l));
+    }
+
+    const HINT_LINEAR = 'Trace ou importe o eixo da via. <span class="text-red-400 font-semibold">Vermelho</span> = início, <span class="text-blue-400 font-semibold">azul</span> = fim, cada passada numa cor (inclui a extensão nas pontas).';
+    function setMode(m) {
+      if (m === mode) return;
+      if (fac.picking) facTogglePick(false);
+      mode = m;
+      const M = { padrao: 'Padrao', fachada: 'Fachada', linear: 'Linear' };
+      Object.keys(M).forEach(k => {
+        $('panel' + M[k]).classList.toggle('hidden', k !== m);
+        $('foot' + M[k]).classList.toggle('hidden', k !== m);
+        $('tab' + M[k]).className = k === m ? TAB_ON : TAB_OFF;
+      });
+      $('tabPadrao').className += ' px-1 text-[11px] leading-tight'; $('tabFachada').className += ' px-1 text-[11px] leading-tight'; $('tabLinear').className += ' px-1 text-[11px] leading-tight';
+      $('subTitle').innerText = 'DJI Mini 4 Pro · ' + (m === 'fachada' ? 'levantamento de fachada' : m === 'linear' ? 'voo linear em vias urbanas' : 'mapeamento') + ' · KMZ para o DJI Fly';
+      $('hintBox').innerHTML = m === 'fachada' ? HINT_FACHADA : m === 'linear' ? HINT_LINEAR : HINT_PADRAO;
+      $('fileName').innerText = m === 'fachada' ? 'Carregar contorno (.KML ou .GeoJSON)' : m === 'linear' ? 'Carregar eixo da via (.KML ou .GeoJSON)' : 'Carregar .KML ou .GeoJSON';
+      [flightLayer, waypointsMarkersLayer, facLayer, linLayer].forEach(l => map.removeLayer(l));
+      if (m === 'fachada') facLayer.addTo(map);
+      else if (m === 'linear') linLayer.addTo(map);
+      else { flightLayer.addTo(map); waypointsMarkersLayer.addTo(map); }
+      setDrawControl(m === 'linear' ? 'line' : 'polygon');
+      showFeatureOnMap(m === 'fachada' ? fac.feature : m === 'linear' ? lin.feature : activeFeature);
+    }
+    $('tabPadrao').addEventListener('click', () => setMode('padrao'));
+    $('tabFachada').addEventListener('click', () => setMode('fachada'));
+    $('tabLinear').addEventListener('click', () => setMode('linear'));
+
+    // --- Exportação: KMZ no formato do DJI Fly, um arquivo por voo ---
+    function buildFacadeKmz(wps, speed, finishAction, opts = {}) {
+      const cfg = DRONE.fly;
+      const ns = `xmlns="http://www.opengis.net/kml/2.2" xmlns:wpml="${FLY_NS}"`;
+      const sp = String(+speed.toFixed(2));
+      const now = Date.now();
+      const PITCH = opts.pitch ?? 0;   // 0 = câmera horizontal (fachada); -90 = nadir (via)
+      const headMode = opts.follow ? 'followWayline' : 'smoothTransition';
+      const mission = `
+    <wpml:missionConfig>
+      <wpml:flyToWaylineMode>safely</wpml:flyToWaylineMode>
+      <wpml:finishAction>${finishAction}</wpml:finishAction>
+      <wpml:exitOnRCLost>executeLostAction</wpml:exitOnRCLost>
+      <wpml:executeRCLostAction>goBack</wpml:executeRCLostAction>
+      <wpml:globalTransitionalSpeed>${sp}</wpml:globalTransitionalSpeed>
+      <wpml:droneInfo>
+        <wpml:droneEnumValue>${cfg.drone}</wpml:droneEnumValue>
+        <wpml:droneSubEnumValue>${cfg.sub}</wpml:droneSubEnumValue>
+      </wpml:droneInfo>
+    </wpml:missionConfig>`;
+
+      const template = `<?xml version="1.0" encoding="UTF-8"?>
+<kml ${ns}>
+  <Document>
+    <wpml:author>fly</wpml:author>
+    <wpml:createTime>${now}</wpml:createTime>
+    <wpml:updateTime>${now}</wpml:updateTime>${mission}
+  </Document>
+</kml>
+`;
+
+      const n = wps.length;
+      let actionId = 1;
+      const marks = wps.map((pt, i) => {
+        const firstLast = (i === 0 || i === n - 1);
+        let groups = '';
+        if (i === 0) {
+          groups += `
+        <wpml:actionGroup>
+          <wpml:actionGroupId>1</wpml:actionGroupId>
+          <wpml:actionGroupStartIndex>0</wpml:actionGroupStartIndex>
+          <wpml:actionGroupEndIndex>0</wpml:actionGroupEndIndex>
+          <wpml:actionGroupMode>parallel</wpml:actionGroupMode>
+          <wpml:actionTrigger>
+            <wpml:actionTriggerType>reachPoint</wpml:actionTriggerType>
+          </wpml:actionTrigger>
+          <wpml:action>
+            <wpml:actionId>${actionId++}</wpml:actionId>
+            <wpml:actionActuatorFunc>gimbalRotate</wpml:actionActuatorFunc>
+            <wpml:actionActuatorFuncParam>
+              <wpml:gimbalHeadingYawBase>aircraft</wpml:gimbalHeadingYawBase>
+              <wpml:gimbalRotateMode>absoluteAngle</wpml:gimbalRotateMode>
+              <wpml:gimbalPitchRotateEnable>1</wpml:gimbalPitchRotateEnable>
+              <wpml:gimbalPitchRotateAngle>${PITCH}</wpml:gimbalPitchRotateAngle>
+              <wpml:gimbalRollRotateEnable>0</wpml:gimbalRollRotateEnable>
+              <wpml:gimbalRollRotateAngle>0</wpml:gimbalRollRotateAngle>
+              <wpml:gimbalYawRotateEnable>0</wpml:gimbalYawRotateEnable>
+              <wpml:gimbalYawRotateAngle>0</wpml:gimbalYawRotateAngle>
+              <wpml:gimbalRotateTimeEnable>0</wpml:gimbalRotateTimeEnable>
+              <wpml:gimbalRotateTime>0</wpml:gimbalRotateTime>
+              <wpml:payloadPositionIndex>0</wpml:payloadPositionIndex>
+            </wpml:actionActuatorFuncParam>
+          </wpml:action>
+        </wpml:actionGroup>`;
+        }
+        if (i < n - 1) {
+          groups += `
+        <wpml:actionGroup>
+          <wpml:actionGroupId>2</wpml:actionGroupId>
+          <wpml:actionGroupStartIndex>${i}</wpml:actionGroupStartIndex>
+          <wpml:actionGroupEndIndex>${i + 1}</wpml:actionGroupEndIndex>
+          <wpml:actionGroupMode>parallel</wpml:actionGroupMode>
+          <wpml:actionTrigger>
+            <wpml:actionTriggerType>reachPoint</wpml:actionTriggerType>
+          </wpml:actionTrigger>
+          <wpml:action>
+            <wpml:actionId>${actionId++}</wpml:actionId>
+            <wpml:actionActuatorFunc>gimbalEvenlyRotate</wpml:actionActuatorFunc>
+            <wpml:actionActuatorFuncParam>
+              <wpml:gimbalPitchRotateAngle>${PITCH}</wpml:gimbalPitchRotateAngle>
+              <wpml:gimbalRollRotateAngle>0</wpml:gimbalRollRotateAngle>
+              <wpml:payloadPositionIndex>0</wpml:payloadPositionIndex>
+            </wpml:actionActuatorFuncParam>
+          </wpml:action>
+        </wpml:actionGroup>`;
+        }
+        return `
+      <Placemark>
+        <Point>
+          <coordinates>
+            ${pt.lng.toFixed(8)},${pt.lat.toFixed(8)}
+          </coordinates>
+        </Point>
+        <wpml:index>${i}</wpml:index>
+        <wpml:executeHeight>${pt.h}</wpml:executeHeight>
+        <wpml:waypointSpeed>${sp}</wpml:waypointSpeed>
+        <wpml:waypointHeadingParam>
+          <wpml:waypointHeadingMode>${headMode}</wpml:waypointHeadingMode>
+          <wpml:waypointHeadingAngle>${opts.follow ? 0 : pt.heading}</wpml:waypointHeadingAngle>
+          <wpml:waypointPoiPoint>0.000000,0.000000,0.000000</wpml:waypointPoiPoint>
+          <wpml:waypointHeadingAngleEnable>${firstLast ? 1 : 0}</wpml:waypointHeadingAngleEnable>
+          <wpml:waypointHeadingPathMode>followBadArc</wpml:waypointHeadingPathMode>
+          <wpml:waypointHeadingPoiIndex>0</wpml:waypointHeadingPoiIndex>
+        </wpml:waypointHeadingParam>
+        <wpml:waypointTurnParam>
+          <wpml:waypointTurnMode>${firstLast ? 'toPointAndStopWithContinuityCurvature' : 'toPointAndPassWithContinuityCurvature'}</wpml:waypointTurnMode>
+          <wpml:waypointTurnDampingDist>0</wpml:waypointTurnDampingDist>
+        </wpml:waypointTurnParam>
+        <wpml:useStraightLine>0</wpml:useStraightLine>${groups}
+        <wpml:waypointGimbalHeadingParam>
+          <wpml:waypointGimbalPitchAngle>${PITCH}</wpml:waypointGimbalPitchAngle>
+          <wpml:waypointGimbalYawAngle>0</wpml:waypointGimbalYawAngle>
+        </wpml:waypointGimbalHeadingParam>
+      </Placemark>`;
+      }).join('');
+
+      const waylines = `<?xml version="1.0" encoding="UTF-8"?>
+<kml ${ns}>
+  <Document>${mission}
+    <Folder>
+      <wpml:templateId>0</wpml:templateId>
+      <wpml:executeHeightMode>relativeToStartPoint</wpml:executeHeightMode>
+      <wpml:waylineId>0</wpml:waylineId>
+      <wpml:distance>0</wpml:distance>
+      <wpml:duration>0</wpml:duration>
+      <wpml:autoFlightSpeed>${sp}</wpml:autoFlightSpeed>${marks}
+    </Folder>
+  </Document>
+</kml>
+`;
+      return { template, waylines };
+    }
+
+    $('btnExportFac').addEventListener('click', async () => {
+      if (!fac.plan) return;
+      const p = facParams(), plan = fac.plan, textEl = $('btnExportFacText');
+      if (plan.meta.hMin < 1 && !confirm(`Atenção: há anéis a ${plan.meta.hMin.toFixed(1)} m de altura em relação à decolagem. Exportar mesmo assim?`)) return;
+      textEl.innerText = 'Gerando...';
+      try {
+        const ts = Date.now(), K = plan.parts.length;
+        for (let k = 0; k < K; k++) {
+          const { template, waylines } = buildFacadeKmz(plan.parts[k].wps, plan.meta.speed, p.finish);
+          const zip = new JSZip();
+          const folder = zip.folder('wpmz');
+          folder.file('template.kml', template);
+          folder.file('waylines.wpml', waylines);
+          const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+          download(blob, K > 1 ? `fachada_voo${k + 1}de${K}_${ts}.kmz` : `fachada_${ts}.kmz`);
+          if (k < K - 1) await sleep(500);
+        }
+        toast(`${K > 1 ? K + ' KMZ gerados (um por voo). ' : 'KMZ gerado. '}No Fly: foto por intervalo de ${plan.meta.interval} s, RTH acima de ${Math.ceil(p.bh + 15)} m, e confira as setas de proa.`, K > 1 ? 'warn' : 'info');
+      } catch (err) {
+        toast('Erro ao gerar KMZ: ' + err.message, 'error');
+      } finally {
+        textEl.innerText = plan.parts.length > 1 ? `Exportar ${plan.parts.length} KMZ (fachada)` : 'Exportar KMZ (fachada)';
+      }
+    });
+
+
+    // ==================================================================
+    // ABA: VOO LINEAR (VIAS URBANAS)
+    //  Câmera a -90° (nadir), voando ACIMA dos prédios, com 1..n passadas paralelas ao eixo da via.
+    //  Frontal e lateral calculadas no nível do topo dos prédios (pior caso para o Metashape).
+    // ==================================================================
+    const LIN_MIN_SPEED = 0.1, LIN_MAX_SPEED = 8;
+    const LIN_MAX_WP_FILE = 150, LIN_MAX_SEG = 60, LIN_BEND_DEG = 12, LIN_BEND_LEAD = 8;
+    const LIN_OVERHEAD_S = 60;
+    const LIN_COLORS = ['#22d3ee', '#a78bfa', '#34d399', '#f472b6'];
+    const linLayer = L.layerGroup();
+
+    // Desloca uma polilinha (metros) lateralmente; positivo = esquerda do sentido do traçado (cantos em meia-esquadria)
+    function offsetPath(pts, off) {
+      const n = pts.length, out = [];
+      const dir = (a, b) => { const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [(b[0] - a[0]) / l, (b[1] - a[1]) / l]; };
+      for (let i = 0; i < n; i++) {
+        const d1 = i > 0 ? dir(pts[i - 1], pts[i]) : dir(pts[i], pts[i + 1]);
+        const d2 = i < n - 1 ? dir(pts[i], pts[i + 1]) : d1;
+        const n1 = [-d1[1], d1[0]], n2 = [-d2[1], d2[0]];
+        let mx = n1[0] + n2[0], my = n1[1] + n2[1];
+        const ml = Math.hypot(mx, my) || 1; mx /= ml; my /= ml;
+        const k = 1 / Math.max(0.5, mx * n1[0] + my * n1[1]);
+        out.push([pts[i][0] + mx * off * k, pts[i][1] + my * off * k]);
+      }
+      return out;
+    }
+
+    // Adensa uma passada: pontos extras antes/depois de curvas e subdivisão de trechos longos
+    function densifyPass(pts) {
+      const out = [pts[0]];
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i];
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        const u = len ? [(b[0] - a[0]) / len, (b[1] - a[1]) / len] : [0, 0];
+        const bendA = i - 1 > 0 && isBend(pts[i - 2], a, b);
+        const bendB = i < pts.length - 1 && isBend(a, b, pts[i + 1]);
+        const lead = Math.min(LIN_BEND_LEAD, len / 3);
+        const mids = [];
+        if (bendA && len > 2 * lead) mids.push(lead);
+        if (bendB && len > 2 * lead) mids.push(len - lead);
+        const cuts = [0, ...mids, len];
+        for (let c = 0; c < cuts.length - 1; c++) {
+          const seg = cuts[c + 1] - cuts[c], k = Math.max(1, Math.ceil(seg / LIN_MAX_SEG));
+          for (let q = 1; q <= k; q++) { const t = cuts[c] + seg * q / k; out.push([a[0] + u[0] * t, a[1] + u[1] * t]); }
+        }
+      }
+      return out;
+    }
+    function isBend(p0, p1, p2) {
+      const a1 = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]), a2 = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+      let d = Math.abs(a2 - a1) * 180 / Math.PI; if (d > 180) d = 360 - d;
+      return d > LIN_BEND_DEG;
+    }
+
+    function buildLinePlan(feature, p) {
+      const cam = DRONE.cam;
+      const g = feature && feature.geometry;
+      if (!g || g.type !== 'LineString' || g.coordinates.length < 2) return { error: 'Trace ou importe o eixo da via (linha).' };
+      let coords = g.coordinates.map(c => [c[0], c[1]]);
+      if (p.startAt === 'b') coords.reverse();
+      const bb = turf.bbox(turf.lineString(coords));
+      const lng0 = (bb[0] + bb[2]) / 2, lat0 = (bb[1] + bb[3]) / 2;
+      const { kx, ky } = metersPerDeg(lat0);
+      const toM = (c) => [(c[0] - lng0) * kx, (c[1] - lat0) * ky];
+      const toLL = (m) => [lng0 + m[0] / kx, lat0 + m[1] / ky];
+      let base = rdp(coords.map(toM), 0.5);
+      base = base.filter((q, i) => i === 0 || Math.hypot(q[0] - base[i - 1][0], q[1] - base[i - 1][1]) > 0.05);
+      if (base.length < 2) return { error: 'Linha muito curta.' };
+      const mainLen = base.slice(1).reduce((s0, q, i) => s0 + Math.hypot(q[0] - base[i][0], q[1] - base[i][1]), 0);
+
+      // Extensão nas pontas (prolonga o 1º e o último segmentos)
+      const ext = p.ext;
+      const extend = (a, b, d) => { const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [b[0] + (b[0] - a[0]) / l * d, b[1] + (b[1] - a[1]) / l * d]; };
+      let full = base.slice();
+      if (ext > 0) { full = [extend(base[1], base[0], ext)].concat(base, [extend(base[base.length - 2], base[base.length - 1], ext)]); }
+
+      // Geometria de voo
+      const Hf = p.obs + p.clear, dTop = p.clear;
+      const WT = dTop * cam.sensorW / cam.focal, HT = dTop * cam.sensorH / cam.focal;   // pegada no topo dos prédios
+      const WG = Hf * cam.sensorW / cam.focal, HG = Hf * cam.sensorH / cam.focal;       // pegada no piso
+      const gsdG = Hf * cam.sensorW / (cam.focal * cam.pxW) * 100, gsdT = dTop * cam.sensorW / (cam.focal * cam.pxW) * 100; // cm/px
+      const target = p.width + 2 * p.margin;
+
+      let n, spacing;
+      if (p.passes === 'auto') {
+        n = WT >= target ? 1 : 1 + Math.ceil((target - WT) / (WT * (1 - p.ovL)) - 1e-9);
+        spacing = n > 1 ? (target - WT) / (n - 1) : 0;
+      } else {
+        n = parseInt(p.passes, 10);
+        spacing = n > 1 ? WT * (1 - p.ovL) : 0;
+      }
+      const coverTop = WT + (n - 1) * spacing;
+      const ovLReal = n > 1 ? 1 - spacing / WT : null;
+
+      // Velocidade a partir do intervalo: espaçamento frontal no topo / intervalo
+      const vRaw = HT * (1 - p.ovF) / p.interval;
+      const v = Math.max(LIN_MIN_SPEED, Math.floor(Math.min(LIN_MAX_SPEED, Math.max(LIN_MIN_SPEED, vRaw)) * 100) / 100);
+      const ovFTop = 1 - v * p.interval / HT, ovFGnd = 1 - v * p.interval / HG;
+
+      // Passadas (serpentina: ida, volta, ...) e waypoints
+      const passes = [];
+      const wps = [];
+      for (let k = 0; k < n; k++) {
+        const off = (k - (n - 1) / 2) * spacing;
+        let path = offsetPath(full, off);
+        if (k % 2 === 1) path = path.slice().reverse();
+        path = densifyPass(path);
+        passes.push({ k, off, path });
+        path.forEach((m, j) => { const ll = toLL(m); wps.push({ x: m[0], y: m[1], lng: ll[0], lat: ll[1], h: Hf, pass: k }); });
+      }
+      let passLen = passes.map(ps => ps.path.slice(1).reduce((s0, q, i) => s0 + Math.hypot(q[0] - ps.path[i][0], q[1] - ps.path[i][1]), 0));
+      // transição entre passadas (deslocamento lateral nas pontas)
+      const trans = Array.from({ length: n - 1 }, () => spacing);
+      const totalLen = passLen.reduce((a, b) => a + b, 0) + trans.reduce((a, b) => a + b, 0);
+
+      // Divisão em voos (baterias)
+      const maxSec = p.maxMin * 60;
+      const segTime = (a, b) => Math.hypot(b.x - a.x, b.y - a.y) / v;
+      const parts = [];
+      const passTimes = passLen.map(l => l / v);
+      const wholePasses = passTimes.every(t => t + LIN_OVERHEAD_S <= maxSec) && passes.every(ps => ps.path.length <= LIN_MAX_WP_FILE);
+      if (wholePasses) {
+        let cur = null;
+        passes.forEach((ps, k) => {
+          const t = passTimes[k] + (k > 0 ? spacing / v : 0);
+          const fits = cur && cur.time + t + LIN_OVERHEAD_S <= maxSec && cur.wps.length + ps.path.length <= LIN_MAX_WP_FILE;
+          if (!fits) { cur = { time: passTimes[k], wps: [], passes: [] }; parts.push(cur); }
+          else cur.time += t;
+          cur.wps.push(...wps.filter(w => w.pass === k)); cur.passes.push(k);
+        });
+      } else {
+        let cur = null;
+        wps.forEach((w, i) => {
+          const prev = i > 0 ? wps[i - 1] : null;
+          const dt = prev ? segTime(prev, w) : 0;
+          if (!cur || cur.time + dt + LIN_OVERHEAD_S > maxSec || cur.wps.length >= LIN_MAX_WP_FILE) {
+            cur = { time: 0, wps: [], passes: [] }; parts.push(cur);
+            if (prev && cur !== parts[0]) cur.wps.push(prev);   // o voo seguinte recomeça de onde o anterior parou
+          } else cur.time += dt;
+          cur.wps.push(w);
+          if (!cur.passes.includes(w.pass)) cur.passes.push(w.pass);
+        });
+      }
+      parts.forEach(pt => { pt.time += LIN_OVERHEAD_S; });
+
+      const clearSingle = Math.ceil(target * cam.focal / cam.sensorW);
+      return {
+        wps, parts, passes, base, full,
+        meta: {
+          Hf, WT, HT, WG, HG, gsdG, gsdT, n, spacing, coverTop, ovLReal, target, mainLen, totalLen,
+          speed: v, speedRaw: vRaw, interval: p.interval, ovFTop, ovFGnd,
+          photos: Math.ceil(totalLen / (v * p.interval)), nWps: wps.length,
+          totalTime: parts.reduce((s0, x) => s0 + x.time, 0), clearSingle,
+          partsSplitMidPass: !wholePasses
+        }
+      };
+    }
+
+    function linParams() {
+      const num = (id, def) => { const x = parseFloat($(id).value); return Number.isFinite(x) ? x : def; };
+      return {
+        width: Math.max(5, num('linWidth', 50)), obs: Math.max(0, num('linObs', 40)), clear: Math.max(5, num('linClear', 30)),
+        margin: Math.max(0, num('linMargin', 3)), ovF: num('linOvF', 0.8), ovL: num('linOvL', 0.65), interval: num('linInterval', 3),
+        passes: $('linPasses').value, startAt: $('linStart').value, ext: Math.max(0, num('linExt', 20)),
+        finish: $('linFinish').value, maxMin: Math.max(5, num('linMaxMin', 18))
+      };
+    }
+
+    const LIN_STAT_IDS = ['linStatInterval', 'linStatAlt', 'linStatSpeed', 'linStatPasses', 'linStatFootTop', 'linStatFootGnd', 'linStatGSD',
+                          'linStatOvF', 'linStatOvL', 'linStatLen', 'linStatWps', 'linStatPhotos', 'linStatTime', 'linStatParts'];
+    function linResetStats() {
+      LIN_STAT_IDS.forEach(id => $(id).innerText = '--');
+      $('linWarn').classList.add('hidden'); $('linRthNote').innerText = '';
+    }
+
+    function linUpdateStats(plan, p) {
+      const m = plan.meta;
+      $('linStatInterval').innerText = `${m.interval} s`;
+      $('linStatAlt').innerText = `${m.Hf.toFixed(0)} m (${(m.Hf - p.obs).toFixed(0)} m acima do topo)`;
+      $('linStatSpeed').innerText = `${m.speed.toFixed(2)} m/s (${(m.speed * 3.6).toFixed(1)} km/h)`;
+      $('linStatPasses').innerText = m.n > 1 ? `${m.n} / a cada ${m.spacing.toFixed(1)} m` : '1 (no eixo)';
+      $('linStatFootTop').innerText = `${m.WT.toFixed(1)} × ${m.HT.toFixed(1)} m`;
+      $('linStatFootGnd').innerText = `${m.WG.toFixed(1)} × ${m.HG.toFixed(1)} m`;
+      $('linStatGSD').innerText = `${m.gsdG.toFixed(1)} / ${m.gsdT.toFixed(1)} cm/px`;
+      $('linStatOvF').innerText = `${(m.ovFTop * 100).toFixed(0)}% / ${(m.ovFGnd * 100).toFixed(0)}%`;
+      $('linStatOvL').innerText = m.ovLReal == null ? '-- (1 passada)' : `${(m.ovLReal * 100).toFixed(0)}%`;
+      $('linStatLen').innerText = `${m.mainLen.toFixed(0)} m (voo total ${m.totalLen.toFixed(0)} m)`;
+      $('linStatWps').innerText = `${m.nWps}`;
+      $('linStatPhotos').innerText = `~${m.photos}`;
+      $('linStatTime').innerText = fmtTime(m.totalTime);
+      $('linStatParts').innerText = `${plan.parts.length}` + (plan.parts.length > 1 ? ` (${plan.parts.map(pt => 'passada ' + pt.passes.map(x => x + 1).join('+')).join(' | ')})` : '');
+
+      const w = [];
+      if (m.Hf > 120) w.push(`Altura de voo ${m.Hf.toFixed(0)} m, acima do limite de 120 m. Reduza o obstáculo ou a folga, ou obtenha autorização.`);
+      if (m.coverTop < m.target - 0.5) w.push(`As passadas cobrem ${m.coverTop.toFixed(0)} m no topo dos prédios, menos que os ${m.target.toFixed(0)} m pedidos. Aumente as passadas ou a folga.`);
+      if (m.n > 1 && m.clearSingle > p.clear) w.push(`Com folga de ${m.clearSingle} m (altura ${(p.obs + m.clearSingle).toFixed(0)} m) uma passada bastaria, mas o GSD no piso passaria de ${((p.obs + m.clearSingle) * DRONE.cam.sensorW / (DRONE.cam.focal * DRONE.cam.pxW) * 100).toFixed(1)} cm/px.`);
+      if (m.n === 1) w.push('Com uma única faixa o Metashape tem geometria fraca (efeito de cúpula/deriva). Use pontos de controle (GCP) ao longo da via, de preferência nos dois lados.');
+      if (m.speedRaw > LIN_MAX_SPEED + 1e-9) w.push(`Velocidade limitada a ${LIN_MAX_SPEED} m/s; a sobreposição frontal real ficou ${(m.ovFTop * 100).toFixed(0)}% no topo.`);
+      if (m.speed < 0.3) w.push(`Velocidade muito baixa (${m.speed.toFixed(2)} m/s). Confirme no Fly que o waypoint aceita esse valor.`);
+      if (m.partsSplitMidPass) w.push('Uma passada não cabe em um voo: ela foi cortada em trechos. Cada voo recomeça do último ponto do anterior, então decole perto de cada início de trecho.');
+      else if (plan.parts.length > 1) w.push(`A missão foi dividida em ${plan.parts.length} voos (um arquivo por voo), por tempo (${p.maxMin} min) ou waypoints.`);
+      w.push('Entre prédios altos o GPS e o sinal do controle podem falhar. Mantenha o drone sempre à vista (VLOS), evite voar sobre pessoas e veículos e verifique a autorização no SARPAS/DECEA.');
+      const box = $('linWarn');
+      box.classList.toggle('hidden', w.length === 0);
+      box.innerHTML = w.map(t => `<div>⚠ ${t}</div>`).join('');
+      $('linRthNote').innerText = `Antes de voar: ajuste a altura de retorno (RTH) no Fly para pelo menos ${Math.ceil(m.Hf + 10)} m e decole na via, no ponto onde a linha começa.`;
+    }
+
+    function linDraw(plan) {
+      linLayer.clearLayers();
+      plan.passes.forEach(ps => {
+        const col = LIN_COLORS[ps.k % LIN_COLORS.length];
+        L.polyline(plan.wps.filter(w => w.pass === ps.k).map(w => [w.lat, w.lng]), { color: col, weight: 3, opacity: 0.95 })
+          .bindTooltip(`Passada ${ps.k + 1}`).addTo(linLayer);
+      });
+      const first = plan.wps[0], last = plan.wps[plan.wps.length - 1];
+      L.circleMarker([last.lat, last.lng], { radius: 11, color: '#fff', weight: 2, fillColor: '#3b82f6', fillOpacity: 1 }).bindTooltip('Último waypoint (fim)').addTo(linLayer);
+      L.circleMarker([first.lat, first.lng], { radius: 6, color: '#fff', weight: 2, fillColor: '#ef4444', fillOpacity: 1 }).bindTooltip('1º waypoint (início)').addTo(linLayer);
+    }
+
+    function linUpdateButtons() {
+      $('btnExportLin').disabled = !lin.plan;
+      const k = lin.plan ? lin.plan.parts.length : 1;
+      $('btnExportLinText').innerText = k > 1 ? `Exportar ${k} KMZ (via)` : 'Exportar KMZ (via)';
+    }
+
+    function linRecompute() {
+      linLayer.clearLayers();
+      if (!lin.feature) { lin.plan = null; linUpdateButtons(); linResetStats(); return; }
+      const p = linParams();
+      let plan;
+      try { plan = buildLinePlan(lin.feature, p); } catch (err) { plan = { error: 'Erro ao calcular a via: ' + err.message }; }
+      if (plan.error) { lin.plan = null; linUpdateButtons(); linResetStats(); toast(plan.error, 'warn'); return; }
+      lin.plan = plan;
+      linDraw(plan); linUpdateStats(plan, p); linUpdateButtons();
+    }
+
+    let linTimer = null;
+    const linSchedule = () => { clearTimeout(linTimer); linTimer = setTimeout(linRecompute, 150); };
+    ['linWidth', 'linObs', 'linClear', 'linMargin', 'linExt', 'linMaxMin'].forEach(id => $(id).addEventListener('input', linSchedule));
+    ['linOvF', 'linOvL', 'linInterval', 'linPasses', 'linStart', 'linFinish'].forEach(id => $(id).addEventListener('change', linRecompute));
+
+    $('btnExportLin').addEventListener('click', async () => {
+      if (!lin.plan) return;
+      const p = linParams(), plan = lin.plan, textEl = $('btnExportLinText');
+      textEl.innerText = 'Gerando...';
+      try {
+        const ts = Date.now(), K = plan.parts.length;
+        for (let k = 0; k < K; k++) {
+          const { template, waylines } = buildFacadeKmz(plan.parts[k].wps, plan.meta.speed, p.finish, { pitch: -90, follow: true });
+          const zip = new JSZip();
+          const folder = zip.folder('wpmz');
+          folder.file('template.kml', template);
+          folder.file('waylines.wpml', waylines);
+          const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+          download(blob, K > 1 ? `via_voo${k + 1}de${K}_${ts}.kmz` : `via_${ts}.kmz`);
+          if (k < K - 1) await sleep(500);
+        }
+        toast(`${K > 1 ? K + ' KMZ gerados (um por voo). ' : 'KMZ gerado. '}No Fly: foto por intervalo de ${plan.meta.interval} s, RTH acima de ${Math.ceil(plan.meta.Hf + 10)} m.`, K > 1 ? 'warn' : 'info');
+      } catch (err) {
+        toast('Erro ao gerar KMZ: ' + err.message, 'error');
+      } finally { linUpdateButtons(); }
     });
 
     // Estado inicial
